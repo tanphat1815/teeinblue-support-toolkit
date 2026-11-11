@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Teeinblue Support Toolkit",
+  "version": "1.0.0",
+  "description": "Bug report, snippet injector và health check cho Teeinblue Technical Support.",
+  "minimum_chrome_version": "116",
+  "action": { "default_title": "Teeinblue Support Toolkit", "default_icon": "icons/icon-32.png" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs", "webNavigation"],
+  "host_permissions": [
+    "https://admin.shopify.com/*",
+    "https://online-store-web.shopifyapps.com/*",
+    "*://*.myshopify.com/*",
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://admin.shopify.com/store/*", "https://online-store-web.shopifyapps.com/*"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN",
+      "js": ["content/admin-bridge.main.js"]
+    },
+    {
+      "matches": ["https://admin.shopify.com/store/*", "https://online-store-web.shopifyapps.com/*"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": ["content/admin-relay.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["https://admin.shopify.com/*", "https://online-store-web.shopifyapps.com/*"],
+      "all_frames": false,
+      "run_at": "document_start",
+      "world": "MAIN",
+      "js": ["content/console-hook.js"]
+    }
+  ]
+}

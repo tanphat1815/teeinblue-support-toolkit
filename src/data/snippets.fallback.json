@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "snippets": [
+    {
+      "id": "custom-css-file",
+      "title": "Tạo teeinblue-custom.css và link vào theme",
+      "category": "Fix CSS",
+      "description": "Tạo file CSS riêng cho các fix giao diện Teeinblue, tự link vào layout/theme.liquid.",
+      "type": "mixed",
+      "themes": ["*"],
+      "tags": ["css", "custom"],
+      "targets": [
+        { "filename": "assets/teeinblue-custom.css", "mode": "create", "code": "/* Teeinblue custom fixes */\n.teeinblue-wrapper { margin-top: 12px; }" },
+        { "filename": "layout/theme.liquid", "mode": "before-head", "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}" }
+      ]
+    },
+    {
+      "id": "helper-snippet",
+      "title": "Tạo snippets/teeinblue-helper.liquid và render",
+      "category": "Customization ID",
+      "description": "Tạo snippet helper trống và render trước </body>.",
+      "type": "liquid",
+      "themes": ["*"],
+      "tags": ["liquid", "helper"],
+      "targets": [
+        { "filename": "snippets/teeinblue-helper.liquid", "mode": "create", "code": "{% comment %} Teeinblue helper {% endcomment %}\n<script>window.tibHelperLoaded = true;</script>" },
+        { "filename": "layout/theme.liquid", "mode": "before-body", "code": "{% render 'teeinblue-helper' %}" }
+      ]
+    },
+    {
+      "id": "cart-count-refresh",
+      "title": "Cập nhật số lượng giỏ hàng sau add-to-cart (generic)",
+      "category": "Update Cart Count",
+      "description": "Ví dụ generic: gọi /cart.js và cập nhật .cart-count-bubble. Cần chỉnh selector theo theme.",
+      "type": "js",
+      "themes": ["dawn"],
+      "tags": ["cart", "count"],
+      "targets": [
+        { "filename": "layout/theme.liquid", "mode": "before-body", "code": "<script>\nwindow.tibRefreshCartCount = async function () {\n  const cart = await (await fetch('/cart.js')).json();\n  document.querySelectorAll('.cart-count-bubble span[aria-hidden]').forEach(function (el) { el.textContent = cart.item_count; });\n};\n</script>" }
+      ]
+    }
+  ]
+}

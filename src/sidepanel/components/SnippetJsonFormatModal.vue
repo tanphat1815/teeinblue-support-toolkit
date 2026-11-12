@@ -94,28 +94,28 @@ async function handleCopy() {
         </button>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div class="flex border-b border-slate-200 bg-slate-100/60 p-1 text-xs">
+      <!-- Navigation Tabs (cuộn ngang mượt mà, không bị ép vỡ chữ trên Sidepanel hẹp) -->
+      <div class="flex border-b border-slate-200 bg-slate-100/70 p-1 text-xs overflow-x-auto no-scrollbar gap-1">
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeTab === 'keys' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeTab === 'keys' ? 'bg-white text-emerald-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeTab = 'keys'"
         >
-          1. Chi tiết các Keys
+          1. Chi tiết Keys
         </button>
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeTab === 'example' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeTab === 'example' ? 'bg-white text-emerald-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeTab = 'example'"
         >
           2. Ví dụ mẫu JSON
         </button>
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeTab === 'large_code' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeTab === 'large_code' ? 'bg-white text-emerald-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeTab = 'large_code'"
         >
-          3. Xử lý Code dài (1000+ dòng)
+          3. Code dài (1000+ dòng)
         </button>
       </div>
 
@@ -269,35 +269,41 @@ async function handleCopy() {
           </div>
 
           <div class="space-y-2">
-            <h4 class="font-semibold text-slate-900">Cách làm chuẩn mực & chuyên nghiệp nhất (Pattern 2 bước):</h4>
+            <h4 class="font-semibold text-slate-900">Cách làm chuẩn mực & chuyên nghiệp (Pattern 2 bước):</h4>
             
-            <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-2.5 shadow-sm">
+            <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-3 shadow-sm">
               <div class="space-y-1">
-                <div class="font-semibold text-emerald-700 flex items-center gap-1">
-                  <span>Bước 1:</span> Tách code dài thành 1 file độc lập trong <code>assets/</code> hoặc <code>snippets/</code> (mode: "create")
+                <div class="font-semibold text-emerald-700 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">Bước 1</span>
+                  <span>Tách code dài thành file độc lập</span>
                 </div>
-                <p class="text-slate-600 text-[11px]">
-                  Tạo file riêng như <code>assets/teeinblue-custom.css</code>, <code>assets/teeinblue-fix.js</code> hoặc <code>snippets/teeinblue-app.liquid</code>.
-                </p>
+                <div class="text-[11px] text-slate-600 pl-1 space-y-0.5">
+                  <div>• Vị trí: trong thư mục <code class="font-semibold text-slate-800">assets/</code> hoặc <code class="font-semibold text-slate-800">snippets/</code></div>
+                  <div>• Chế độ: <code class="rounded bg-emerald-50 px-1 py-0.5 font-mono text-[10.5px] text-emerald-700 border border-emerald-200">mode: "create"</code></div>
+                  <div>• Ví dụ: <code>assets/teeinblue-custom.css</code> hoặc <code>assets/teeinblue-fix.js</code></div>
+                </div>
               </div>
 
-              <div class="space-y-1">
-                <div class="font-semibold text-blue-700 flex items-center gap-1">
-                  <span>Bước 2:</span> Dùng 1 dòng lệnh duy nhất để link vào <code>layout/theme.liquid</code> (mode: "before-head" hoặc "before-body")
+              <div class="space-y-1 border-t border-slate-100 pt-2">
+                <div class="font-semibold text-blue-700 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800">Bước 2</span>
+                  <span>Link vào layout/theme.liquid (1 dòng duy nhất)</span>
                 </div>
-                <p class="text-slate-600 text-[11px]">
-                  Trong <code>layout/theme.liquid</code>, bạn chỉ cần gọi thẻ link hoặc thẻ render 1 dòng.
-                </p>
+                <div class="text-[11px] text-slate-600 pl-1 space-y-0.5">
+                  <div>• Vị trí: <code class="font-semibold text-slate-800">layout/theme.liquid</code></div>
+                  <div>• Chế độ: <code class="rounded bg-blue-50 px-1 py-0.5 font-mono text-[10.5px] text-blue-700 border border-blue-200">mode: "before-head"</code> hoặc <code class="rounded bg-blue-50 px-1 py-0.5 font-mono text-[10.5px] text-blue-700 border border-blue-200">mode: "before-body"</code></div>
+                  <div>• Chỉ cần gọi thẻ link CSS hoặc script JS 1 dòng duy nhất.</div>
+                </div>
               </div>
 
               <!-- Minh họa cấu trúc target -->
-              <div class="rounded bg-slate-900 p-2.5 font-mono text-[11px] text-slate-200 leading-relaxed space-y-1.5">
+              <div class="rounded bg-slate-900 p-2.5 font-mono text-[11px] text-slate-200 leading-relaxed space-y-1 overflow-x-auto">
                 <div class="text-emerald-400">// Khai báo trong targets của Snippet:</div>
                 <div class="text-slate-400">"targets": [</div>
                 <div class="pl-3 text-amber-300">{</div>
                 <div class="pl-6"><span class="text-blue-300">"filename"</span>: <span class="text-emerald-300">"assets/teeinblue-app.js"</span>,</div>
                 <div class="pl-6"><span class="text-blue-300">"mode"</span>: <span class="text-emerald-300">"create"</span>,</div>
-                <div class="pl-6"><span class="text-blue-300">"code"</span>: <span class="text-slate-400">"/* Toàn bộ 1000 dòng code JS của bạn để ở đây */"</span></div>
+                <div class="pl-6"><span class="text-blue-300">"code"</span>: <span class="text-slate-400">"/* 1000 dòng code JS để ở đây */"</span></div>
                 <div class="pl-3 text-amber-300">},</div>
                 <div class="pl-3 text-amber-300">{</div>
                 <div class="pl-6"><span class="text-blue-300">"filename"</span>: <span class="text-emerald-300">"layout/theme.liquid"</span>,</div>

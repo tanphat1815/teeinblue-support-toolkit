@@ -41,32 +41,32 @@ const activeSection = ref<'overview' | 'storefront' | 'admin' | 'code'>('overvie
         </button>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div class="flex border-b border-slate-200 bg-slate-100/60 p-1 text-xs">
+      <!-- Navigation Tabs (cuộn ngang mượt mà, không bị ép chữ) -->
+      <div class="flex border-b border-slate-200 bg-slate-100/70 p-1 text-xs overflow-x-auto no-scrollbar gap-1">
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeSection === 'overview' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeSection === 'overview' ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeSection = 'overview'"
         >
           1. Tổng quan
         </button>
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeSection === 'storefront' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeSection === 'storefront' ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeSection = 'storefront'"
         >
           2. Storefront
         </button>
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeSection === 'admin' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeSection === 'admin' ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeSection = 'admin'"
         >
           3. Shopify Admin
         </button>
         <button
-          class="flex-1 rounded-md py-1.5 font-medium transition-all"
-          :class="activeSection === 'code' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+          class="shrink-0 rounded-md px-3 py-1.5 font-medium transition-all whitespace-nowrap"
+          :class="activeSection === 'code' ? 'bg-white text-blue-700 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
           @click="activeSection = 'code'"
         >
           4. Cơ chế Code

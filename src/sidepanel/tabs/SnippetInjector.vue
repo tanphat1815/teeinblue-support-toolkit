@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { TabContext } from '@/shared/types';
 import WorkflowSection from '../components/WorkflowSection.vue';
 import UntitledIcon, { type IconName } from '../components/UntitledIcon.vue';
+import SnippetHelpModal from '../components/SnippetHelpModal.vue';
 import { useSnippetInjector } from '../composables/useSnippetInjector';
 import { copyText } from '../clipboard';
 import { errMsg } from '../api';
@@ -43,6 +44,7 @@ const actionIconMap: Record<string, { icon: IconName; color: string }> = {
 
 const showHelpTip = ref(false);
 const unlockThemeSelect = ref(false);
+const helpModalOpen = ref(false);
 </script>
 
 <template>
@@ -478,6 +480,24 @@ const unlockThemeSelect = ref(false);
         </li>
       </ul>
     </details>
+
+    <!-- Floating Help Button ở góc dưới phải -->
+    <div class="flex justify-end pt-1 pb-2">
+      <button
+        type="button"
+        class="group inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 active:scale-95 transition-all"
+        title="Tìm hiểu cách Snippet Injector hoạt động"
+        @click="helpModalOpen = true"
+      >
+        <div class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+          <UntitledIcon name="info-circle" :size="11" />
+        </div>
+        <span>Cơ chế hoạt động & Architecture</span>
+      </button>
+    </div>
+
+    <!-- Modal giải thích chi tiết kiến trúc & flow -->
+    <SnippetHelpModal :open="helpModalOpen" @close="helpModalOpen = false" />
 
     <!-- confirm modal -->
     <div v-if="confirmOpen" class="fixed inset-0 z-40 flex items-end bg-black/40 p-3 sm:items-center">

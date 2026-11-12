@@ -3,7 +3,7 @@ import type {
   AdminStatus, DetectedTheme, InjectResult, Mode, PreviewRow, Snippet, SnippetTarget,
   SnippetsResult, UndoResult, UndoSummary
 } from '@/shared/types';
-import { DEFAULT_SNIPPETS_URL, MODES, STORAGE } from '@/shared/constants';
+import { DEFAULT_SNIPPETS_URL, MODES, MSG, PARTNER_DASHBOARDS, type PartnerDashboardId, STORAGE } from '@/shared/constants';
 import { buildReferenceTarget, isAllowedFilename } from '@/services/theme-writer';
 import { call, errMsg } from '../api';
 import { copyText } from '../clipboard';
@@ -34,12 +34,20 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const sourceUrl = ref(DEFAULT_SNIPPETS_URL);
   const markerNote = ref('');
   const sourceKind = ref<'github' | 'sheet' | 'custom'>('github');
+  const partnerId = ref<PartnerDashboardId>('collab');
+
   async function loadSettings() {
-    const s = await chrome.storage.local.get(STORAGE.settings);
+    const s = await chrome.storage.local.get([STORAGE.settings, STORAGE.partnerDashboard]);
     const v = s[STORAGE.settings] as { sourceUrl?: string; markerNote?: string } | undefined;
     if (v?.sourceUrl !== undefined) sourceUrl.value = v.sourceUrl;
     if (v?.markerNote !== undefined) markerNote.value = v.markerNote;
+    const p = s[STORAGE.partnerDashboard] as PartnerDashboardId | undefined;
+    if (p && PARTNER_DASHBOARDS.some((d) => d.id === p)) partnerId.value = p;
     detectSourceKind();
+  }
+  function setPartnerId(id: PartnerDashboardId) {
+    partnerId.value = id;
+    chrome.storage.local.set({ [STORAGE.partnerDashboard]: id });
   }
   function detectSourceKind() {
     const u = sourceUrl.value;
@@ -83,20 +91,49 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const selectedTheme = computed(() => admin.value?.themes.find((t) => t.id === themeId.value) || null);
   async function refreshAdmin() {
     try {
+      console.log('[TIB-Toolkit] refreshAdmin requested for handle:', props.ctx.storeHandle);
       admin.value = await call<AdminStatus>({ type: 'ADMIN_STATUS', storeHandle: props.ctx.storeHandle || undefined });
+      console.log('[TIB-Toolkit] ADMIN_STATUS result:', JSON.parse(JSON.stringify(admin.value)));
       const list = admin.value.themes;
       if (!list.some((t) => t.id === themeId.value)) {
         themeId.value = list.find((t) => t.id === props.ctx.themeId)?.id || list.find((t) => t.role === 'main')?.id || list[0]?.id || '';
       }
       await loadUndo();
-    } catch (e) { toast.error(errMsg(e)); }
+    } catch (e) {
+      console.error('[TIB-Toolkit] refreshAdmin error:', e);
+      toast.error(errMsg(e));
+    }
   }
   watch(themeId, async (id) => {
     detected.value = null;
     if (!id || !admin.value?.adminTabId || !admin.value.hasSession) return;
     try { detected.value = await call<DetectedTheme>({ type: 'DETECT_THEME', adminTabId: admin.value.adminTabId, themeId: id }); } catch { /* không bắt buộc */ }
   });
-  async function openThemes() { await call({ type: 'OPEN_THEMES', storeHandle: admin.value?.storeHandle || props.ctx.storeHandle }); }
+  const isCurrentTabShopify = computed(() => props.ctx.kind === 'admin' || props.ctx.kind === 'storefront');
+  const targetStoreHandle = computed(() => props.ctx.storeHandle || admin.value?.storeHandle || '');
+  const isLinkedFromOtherTab = computed(() => !isCurrentTabShopify.value && !!admin.value?.adminTabId && !!targetStoreHandle.value);
+
+  const storeDomain = computed(() => {
+    const raw = targetStoreHandle.value;
+    if (!raw) return '';
+    return raw.includes('.') ? raw : `${raw}.myshopify.com`;
+  });
+
+  const partnerUrl = computed(() => {
+    const d = PARTNER_DASHBOARDS.find((x) => x.id === partnerId.value) || PARTNER_DASHBOARDS[0];
+    const domain = storeDomain.value;
+    const query = [d.param, domain ? `search_term=${encodeURIComponent(domain)}` : ''].filter(Boolean).join('&');
+    return `https://dev.shopify.com/dashboard/${d.orgId}/stores?${query}`;
+  });
+
+  async function openPartnerStores() {
+    window.open(partnerUrl.value, '_blank');
+  }
+
+  async function openThemes() {
+    const handle = admin.value?.storeHandle || props.ctx.storeHandle;
+    await call({ type: 'OPEN_THEMES', storeHandle: handle });
+  }
 
   // ---- library filters
   const query = ref('');
@@ -266,8 +303,25 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     } catch (e) { toast.error(errMsg(e)); }
   }
 
-  watch(() => props.ctx.url, () => { if (props.ctx.kind === 'admin' || props.ctx.kind === 'storefront') refreshAdmin(); });
-  onMounted(async () => { await loadSettings(); await Promise.all([loadSnippets(), refreshAdmin()]); });
+  watch(() => props.ctx.url, () => {
+    refreshAdmin();
+  });
+  onMounted(async () => {
+    await loadSettings();
+    await Promise.all([loadSnippets(), refreshAdmin()]);
+
+    // Lắng nghe khi background bắt được themes/session từ tab Admin
+    const onRuntimeMessage = (m: any) => {
+      if (m?.type === MSG.ADMIN_STATE_UPDATED) {
+        refreshAdmin();
+      }
+    };
+    chrome.runtime.onMessage.addListener(onRuntimeMessage);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(onRuntimeMessage);
+    };
+  });
 
   return {
     toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
@@ -280,6 +334,8 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     targets, invalidTarget, modeLabel,
     confirmOpen, confirmLoading, confirmRows, confirmError, confirmAt, openConfirm,
     injecting, isLive, canInject, doInject, resetAll,
-    undoList, doUndo, copySnippetCode
+    undoList, doUndo, copySnippetCode,
+    partnerId, setPartnerId, PARTNER_DASHBOARDS, partnerUrl, storeDomain, openPartnerStores,
+    isCurrentTabShopify, targetStoreHandle, isLinkedFromOtherTab
   };
 }

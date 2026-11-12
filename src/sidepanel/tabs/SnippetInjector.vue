@@ -23,7 +23,9 @@ const {
   targets, invalidTarget, modeLabel,
   confirmOpen, confirmLoading, confirmRows, confirmError, confirmAt, openConfirm,
   injecting, isLive, canInject, doInject, resetAll,
-  undoList, doUndo, copySnippetCode
+  undoList, doUndo, copySnippetCode,
+  partnerId, setPartnerId, PARTNER_DASHBOARDS, partnerUrl, storeDomain, openPartnerStores,
+  isCurrentTabShopify, targetStoreHandle, isLinkedFromOtherTab
 } = s;
 
 async function copyOne(code: string) {
@@ -40,48 +42,202 @@ const actionIconMap: Record<string, { icon: IconName; color: string }> = {
 };
 
 const showHelpTip = ref(false);
+const unlockThemeSelect = ref(false);
 </script>
 
 <template>
   <section class="space-y-2.5">
-    <!-- hero -->
-    <div class="tib-card bg-gradient-to-r from-blue-50 to-indigo-100 p-3">
-      <div class="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-        <UntitledIcon name="code-02" :size="16" class="text-brand-600" />
-        <span>Inject Shopify Snippets in One Click</span>
+    <!-- Card chủ đạo: Shopify Context & Target Theme -->
+    <div class="tib-card overflow-hidden border-slate-200 bg-white">
+      <!-- Header trạng thái trang hiện tại -->
+      <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-xs">
+        <div class="flex items-center gap-1.5 font-medium text-slate-700 min-w-0">
+          <UntitledIcon
+            :name="ctx.kind === 'admin' ? 'shopping-bag' : ctx.kind === 'storefront' ? 'globe' : 'alert-circle'"
+            :size="15"
+            :class="ctx.kind === 'unsupported' ? 'text-amber-500' : 'text-brand-600'"
+            class="shrink-0"
+          />
+          <span v-if="ctx.kind === 'admin'" class="truncate font-semibold text-slate-800">
+            Shopify Admin · <span class="text-brand-600">{{ ctx.storeHandle }}</span>
+          </span>
+          <span v-else-if="ctx.kind === 'storefront'" class="truncate font-semibold text-slate-800">
+            Storefront · <span class="text-brand-600">{{ ctx.storeHandle || 'Shopify' }}</span>
+          </span>
+          <span v-else-if="isLinkedFromOtherTab" class="truncate text-slate-600" :title="'Tab khác: ' + targetStoreHandle">
+            Tab khác · <span class="font-semibold text-brand-600">{{ targetStoreHandle }}</span>
+          </span>
+          <span v-else class="truncate text-slate-500">Chưa mở trang Shopify</span>
+        </div>
+
+        <span
+          class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+          :class="admin?.hasSession ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'"
+        >
+          <UntitledIcon :name="admin?.hasSession ? 'check-circle' : 'alert-triangle'" :size="11" />
+          <span>{{ admin?.hasSession ? 'Đã kết nối Session' : 'Chưa kết nối Admin' }}</span>
+        </span>
       </div>
-      <div class="tib-muted mt-0.5">Fetch code từ GitHub / Google Sheet và inject vào theme Shopify hiện tại.</div>
-      <div class="tib-muted mt-1">Nguồn: {{ source || '—' }} · {{ snippets.length }} snippet</div>
+
+      <!-- Alert chú thích khi đang liên kết với tab Admin cũ từ tab khác -->
+      <div v-if="isLinkedFromOtherTab" class="border-b border-blue-100 bg-blue-50/60 px-3 py-1.5 text-[11px] text-blue-900 flex items-center justify-between gap-1.5">
+        <div class="flex items-center gap-1.5 truncate">
+          <UntitledIcon name="info-circle" :size="13" class="shrink-0 text-blue-600" />
+          <span class="truncate">Đang lấy dữ liệu từ tab Admin: <b class="font-mono text-slate-900">{{ storeDomain }}</b></span>
+        </div>
+      </div>
+
+      <!-- Nội dung chính của Card: Cảnh báo kết nối & Chọn Theme -->
+      <div class="p-3 space-y-2.5">
+        <!-- Khi chưa kết nối tab Admin hoặc chưa có session (ở cả storefront hay tab khác) -->
+        <div v-if="!admin?.hasSession" class="rounded-xl border border-blue-200/80 bg-[#edf3fa] p-3 text-xs text-slate-800 space-y-3">
+          <div class="flex items-start gap-2">
+            <UntitledIcon name="alert-circle" :size="16" class="mt-0.5 shrink-0 text-amber-500" />
+            <div class="space-y-0.5">
+              <div class="font-semibold text-slate-900">
+                {{ !isCurrentTabShopify ? 'Chưa mở trang Shopify' : (admin?.adminTabId ? 'Chưa bắt được Session Admin' : 'Chưa kết nối Shopify Admin') }}
+              </div>
+              <p class="text-[11.5px] text-slate-600">
+                <template v-if="!isCurrentTabShopify">
+                  Tab hiện tại không phải Shopify. Hãy mở trang Storefront hoặc Admin của store để inject snippet, hoặc chọn đăng nhập bên dưới:
+                </template>
+                <template v-else-if="admin?.adminTabId">
+                  Đã tìm thấy tab Admin nhưng chưa lấy được session theme. Bạn có thể mở lại Themes hoặc chọn cách đăng nhập bên dưới:
+                </template>
+                <template v-else>
+                  Chưa thấy tab Admin của store "{{ storeDomain || 'myshopify.com' }}". Vui lòng chọn 1 trong 2 cách đăng nhập bên dưới:
+                </template>
+              </p>
+            </div>
+          </div>
+
+          <!-- Cách 1: Qua Partner Dashboard (Khuyên dùng khi support khách) -->
+          <div class="rounded-lg border border-slate-200/90 bg-white p-2.5 space-y-2 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-slate-800 text-[11px] uppercase tracking-wide">Cách 1: Qua Partner Dashboard</span>
+              <!-- Partner switcher tone xanh -->
+              <div class="inline-flex rounded-md bg-blue-100/70 p-0.5 text-[11px] border border-blue-200/60">
+                <button
+                  v-for="p in PARTNER_DASHBOARDS"
+                  :key="p.id"
+                  type="button"
+                  class="rounded px-2.5 py-0.5 font-medium transition-all"
+                  :class="partnerId === p.id ? 'bg-white text-brand-600 shadow-2xs font-semibold' : 'text-blue-900/70 hover:text-brand-600'"
+                  @click="setPartnerId(p.id)"
+                >
+                  {{ p.id === 'collab' ? 'Collaborations' : 'Staging' }}
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500">
+              Mở cổng <b class="text-slate-700">{{ partnerId === 'collab' ? 'Partner Collaborations' : 'Partner Staging' }}</b> và tự động tìm store để click Login:
+            </p>
+
+            <button
+              class="tib-btn-primary w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold shadow-sm"
+              @click="openPartnerStores"
+            >
+              <UntitledIcon name="link-external" :size="13" />
+              <span>Mở Partner Store Search ({{ partnerId === 'collab' ? 'Collab' : 'Staging' }})</span>
+            </button>
+          </div>
+
+          <!-- Cách 2: Đăng nhập trực tiếp (Nếu đã có quyền hoặc đang login sẵn) -->
+          <div class="rounded-lg border border-slate-200/90 bg-white p-2.5 space-y-2 shadow-sm">
+            <span class="block font-semibold text-slate-800 text-[11px] uppercase tracking-wide">Cách 2: Đăng nhập trực tiếp</span>
+            <p class="text-[11px] text-slate-500">
+              Dành cho trường hợp bạn đã đăng nhập sẵn hoặc có tài khoản staff trực tiếp trên store:
+            </p>
+
+            <div class="flex gap-2">
+              <button
+                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1.5 text-xs font-medium text-blue-900 shadow-2xs transition-all hover:bg-blue-100 hover:border-blue-300 hover:text-brand-600 active:scale-98"
+                @click="openThemes"
+              >
+                <UntitledIcon name="shopping-bag" :size="13" class="text-brand-600" />
+                <span>Mở Online Store → Themes</span>
+              </button>
+              <button
+                class="inline-flex items-center justify-center gap-1 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-1.5 text-xs font-medium text-blue-900 shadow-2xs transition-all hover:bg-blue-100 hover:border-blue-300 hover:text-brand-600 active:scale-98"
+                title="Bấm sau khi đã đăng nhập Admin ở tab khác"
+                @click="refreshAdmin"
+              >
+                <UntitledIcon name="refresh-cw" :size="12" class="text-brand-600" />
+                <span>Kiểm tra lại</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dropdown chọn Theme đích để Inject (chỉ hiển thị khi ĐANG Ở TRANG SHOPIFY và đã có session) -->
+        <div v-if="isCurrentTabShopify && admin?.hasSession" class="space-y-2">
+          <!-- Dropdown Theme với overlay/style khi bị khóa -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                <UntitledIcon name="palette" :size="14" class="text-brand-600" />
+                <span>Target Theme</span>
+              </label>
+              <span v-if="detected?.name" class="text-[11px] text-slate-500 font-mono">
+                Detected: <b class="text-slate-700">{{ detected.name }}</b> {{ detected.version }}
+              </span>
+            </div>
+
+            <div class="relative">
+              <select
+                v-model="themeId"
+                class="tib-input text-xs font-medium transition-all"
+                :disabled="ctx.kind === 'storefront' && !unlockThemeSelect"
+                :class="ctx.kind === 'storefront' && !unlockThemeSelect
+                  ? 'bg-slate-100/90 text-slate-500 border-slate-300 cursor-not-allowed pr-8 select-none'
+                  : ''"
+              >
+                <option v-if="!admin?.themes?.length" value="">(Chưa có theme nào được tải)</option>
+                <option v-for="t in admin?.themes || []" :key="t.id" :value="t.id">
+                  {{ t.name }} — {{ t.role }}{{ t.id === ctx.themeId ? ' (đang xem)' : '' }}
+                </option>
+              </select>
+
+              <!-- Huy hiệu ổ khóa overlay đè trực tiếp bên phải dropdown khi bị lock -->
+              <div
+                v-if="ctx.kind === 'storefront' && !unlockThemeSelect"
+                class="absolute right-7 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1 bg-slate-200/90 border border-slate-300/80 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide"
+              >
+                <span>🔒 Đã khóa</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cảnh báo an toàn & checkbox mở khóa (nằm ngay dưới dropdown) -->
+          <div v-if="ctx.kind === 'storefront'" class="rounded-lg border border-amber-200 bg-amber-50/70 p-2 text-[11.5px] text-amber-900 space-y-1.5">
+            <div class="flex items-start gap-1.5">
+              <UntitledIcon name="alert-triangle" :size="13" class="mt-0.5 shrink-0 text-amber-600" />
+              <div class="flex-1 space-y-0.5">
+                <div class="font-semibold text-amber-950">Đã khóa theo theme Storefront đang xem</div>
+                <p class="text-[11px] text-amber-800 leading-snug">
+                  Đảm bảo bạn inject đúng theme đang preview. Bấm mở khóa bên dưới nếu muốn inject vào theme khác.
+                </p>
+              </div>
+            </div>
+
+            <div class="pt-1 border-t border-amber-200/60 flex items-center justify-between">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-amber-950 select-none hover:text-brand-600">
+                <input v-model="unlockThemeSelect" type="checkbox" class="rounded border-amber-300 text-brand-600 focus:ring-0 focus:ring-offset-0" />
+                <span>Mở khóa để chọn theme khác</span>
+              </label>
+              <span class="text-[10px] text-amber-700 font-medium">
+                {{ unlockThemeSelect ? '🔓 Đang mở khóa' : '🔒 Khóa tự động' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- trạng thái admin -->
-    <div v-if="!admin?.adminTabId" class="tib-warn">
-      Chưa thấy tab Shopify Admin của store{{ ctx.storeHandle ? ` "${ctx.storeHandle}"` : '' }}. Đăng nhập Admin rồi bấm bên dưới.
-      <div class="mt-2 flex gap-2">
-        <button class="tib-btn-primary px-2 py-1 text-xs" @click="openThemes">Mở Online Store → Themes</button>
-        <button class="tib-btn text-xs" @click="refreshAdmin">Kiểm tra lại</button>
-      </div>
-    </div>
-    <div v-else-if="!admin.hasSession" class="tib-warn">
-      Chưa bắt được session Shopify. Ở tab Admin hãy vào <b>Online Store → Themes</b>, đợi danh sách theme load xong (reload tab nếu vừa cài/reload extension).
-      <div class="mt-2 flex gap-2">
-        <button class="tib-btn-primary px-2 py-1 text-xs" @click="openThemes">Mở Themes</button>
-        <button class="tib-btn text-xs" @click="refreshAdmin">Kiểm tra lại</button>
-      </div>
-    </div>
-
-    <!-- theme bar -->
-    <div class="tib-card space-y-1.5 p-2.5">
-      <label class="block text-xs font-medium">Theme
-        <select v-model="themeId" class="tib-input mt-1">
-          <option v-for="t in admin?.themes || []" :key="t.id" :value="t.id">{{ t.name }} — {{ t.role }}{{ t.id === ctx.themeId ? ' (đang xem)' : '' }}</option>
-        </select>
-      </label>
-      <p v-if="detected?.name" class="tib-muted">Detected: {{ detected.name }} {{ detected.version }}</p>
-    </div>
-
-    <!-- step 1 -->
-    <WorkflowSection step="1" title="Choose Source" subtitle="GitHub JSON · Google Sheet · Custom URL">
+    <!-- step 1: Source & Configuration -->
+    <WorkflowSection step="1" title="Source & Configuration" subtitle="Chọn nguồn và tải danh sách snippets">
+      <!-- Nguồn dữ liệu -->
       <div class="flex gap-2">
         <button class="tib-src-card" :class="sourceKind === 'github' ? 'active' : ''" @click="pickSource('github')">
           <img :src="githubIconUrl" alt="GitHub" class="h-6 w-6 object-contain" />
@@ -96,11 +252,9 @@ const showHelpTip = ref(false);
           <div class="text-xs font-semibold">Custom URL</div>
         </button>
       </div>
-    </WorkflowSection>
 
-    <!-- step 2 -->
-    <WorkflowSection step="2" title="Configure" subtitle="Enter URL and load snippets">
-      <div class="flex items-center gap-1.5">
+      <!-- Ô nhập URL và nút tải -->
+      <div class="flex items-center gap-1.5 pt-1">
         <div class="relative min-w-0 flex-1">
           <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
             <UntitledIcon name="link" :size="14" />
@@ -127,6 +281,7 @@ const showHelpTip = ref(false);
         </button>
       </div>
 
+      <!-- Info tip -->
       <div class="rounded-lg bg-blue-50/80 px-2.5 py-1.5 text-[11px] text-blue-900 border border-blue-100">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-1.5">
@@ -152,9 +307,9 @@ const showHelpTip = ref(false);
       <p v-if="loadingSnippets" class="tib-muted">Đang tải snippets…</p>
     </WorkflowSection>
 
-    <!-- step 3: Choose & Prepare Snippets (Library or Custom) -->
+    <!-- step 2: Choose & Prepare Snippets (Library or Custom) -->
     <WorkflowSection
-      step="3"
+      step="2"
       title="Select Snippets"
       :subtitle="useCustom ? 'Code tuỳ chỉnh' : `${filtered.length}/${snippets.length} snippet · đã chọn ${selectedIds.length}`"
     >
@@ -281,8 +436,8 @@ const showHelpTip = ref(false);
       </div>
     </WorkflowSection>
 
-    <!-- step 4 -->
-    <WorkflowSection step="4" title="Inject to Theme" :subtitle="`${targets.length} file sẽ xử lý`">
+    <!-- step 3: Inject to Theme -->
+    <WorkflowSection step="3" title="Inject to Theme" :subtitle="`${targets.length} file sẽ xử lý`">
       <label class="block text-xs font-medium">Ghi chú marker (tuỳ chọn — tên người edit, ticket…)
         <input v-model="markerNote" class="tib-input mt-1 text-xs" placeholder="vd: Phat – fix cart drawer #123" />
       </label>

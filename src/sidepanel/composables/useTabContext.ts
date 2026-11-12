@@ -11,11 +11,17 @@ export function useTabContext() {
 
   async function refresh() {
     loading.value = true;
-    try { ctx.value = await call<TabContext>({ type: 'GET_TAB_CONTEXT' }); }
-    catch { ctx.value = { ...EMPTY }; }
-    finally { loading.value = false; }
+    try {
+      ctx.value = await call<TabContext>({ type: 'GET_TAB_CONTEXT' });
+      console.log('[TIB-Toolkit] TabContext updated:', JSON.parse(JSON.stringify(ctx.value)));
+    } catch (e) {
+      console.warn('[TIB-Toolkit] Failed to get TabContext:', e);
+      ctx.value = { ...EMPTY };
+    } finally {
+      loading.value = false;
+    }
   }
-  const schedule = () => { window.clearTimeout(timer); timer = window.setTimeout(refresh, 250); };
+  const schedule = () => { window.clearTimeout(timer); timer = window.setTimeout(refresh, 150); };
   const onUpdated = (_id: number, info: chrome.tabs.TabChangeInfo) => { if (info.status === 'complete' || info.url) schedule(); };
 
   onMounted(() => {

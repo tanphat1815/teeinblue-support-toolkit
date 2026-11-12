@@ -135,6 +135,22 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     await call({ type: 'OPEN_THEMES', storeHandle: handle });
   }
 
+  function openThemeEditor(tid?: string) {
+    const id = tid || themeId.value;
+    const handle = targetStoreHandle.value;
+    if (!id || !handle) return;
+    const cleanId = id.replace(/\D/g, '');
+    window.open(`https://admin.shopify.com/store/${handle}/themes/${cleanId}/editor`, '_blank');
+  }
+
+  function openThemeCode(tid?: string) {
+    const id = tid || themeId.value;
+    const handle = targetStoreHandle.value;
+    if (!id || !handle) return;
+    const cleanId = id.replace(/\D/g, '');
+    window.open(`https://admin.shopify.com/store/${handle}/themes/${cleanId}`, '_blank');
+  }
+
   // ---- library filters
   const query = ref('');
   const category = ref('');
@@ -326,7 +342,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   return {
     toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
     snippets, source, snippetsError, loadingSnippets, loadSnippets,
-    admin, themeId, detected, selectedTheme, refreshAdmin, openThemes,
+    admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
     query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
     selectedIds, selectedSnippets, toggleSnippet, clearSelection, expandedId, toggleExpand,
     useCustom, customKind, customFolder, customName, customMode, customCode, addReference,

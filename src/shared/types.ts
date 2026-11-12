@@ -17,7 +17,15 @@ export interface Snippet {
 export interface SnippetsPayload { version: number; updatedAt?: string; snippets: Snippet[] }
 export interface SnippetsResult { snippets: Snippet[]; source: 'remote' | 'cache' | 'fallback'; error?: string }
 
-export interface ThemeInfo { id: string; name: string; role: string }
+export interface ThemeInfo {
+  id: string;
+  name: string;
+  role: string;
+  updatedAt?: string;
+  createdAt?: string;
+  processing?: boolean;
+  processingFailed?: boolean;
+}
 export interface AdminStatus { adminTabId: number | null; storeHandle: string; hasSession: boolean; themes: ThemeInfo[] }
 export interface DetectedTheme { name: string; version: string; slug: string }
 

@@ -17,7 +17,7 @@ const s = useSnippetInjector(props);
 const {
   toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
   snippets, source, snippetsError, loadingSnippets, loadSnippets,
-  admin, themeId, detected, selectedTheme, refreshAdmin, openThemes,
+  admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
   query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
   selectedIds, toggleSnippet, clearSelection, expandedId, toggleExpand,
   useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
@@ -209,6 +209,65 @@ const jsonFormatModalOpen = ref(false);
                 class="absolute right-7 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1 bg-slate-200/90 border border-slate-300/80 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide"
               >
                 <span>🔒 Đã khóa</span>
+              </div>
+            </div>
+
+            <!-- 2 Buttons mở Theme Editor và Edit Code + Chi tiết Theme -->
+            <div v-if="selectedTheme" class="space-y-1.5 pt-1">
+              <!-- Nút mở Editor & Edit Code -->
+              <div class="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700 active:scale-[0.98] transition-all shadow-2xs"
+                  title="Mở Customizer / Theme Editor (giao diện kéo thả)"
+                  @click="openThemeEditor()"
+                >
+                  <UntitledIcon name="palette" :size="13" class="text-indigo-500" />
+                  <span>Customize</span>
+                  <UntitledIcon name="link-external" :size="10" class="text-slate-400" />
+                </button>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:border-blue-300 hover:bg-blue-50/70 hover:text-blue-700 active:scale-[0.98] transition-all shadow-2xs"
+                  title="Mở Code Editor trực tiếp trong Shopify Admin"
+                  @click="openThemeCode()"
+                >
+                  <UntitledIcon name="code-browser" :size="13" class="text-emerald-600" />
+                  <span>Edit code</span>
+                  <UntitledIcon name="link-external" :size="10" class="text-slate-400" />
+                </button>
+              </div>
+
+              <!-- Thẻ thông tin chi tiết về Theme được chọn -->
+              <div class="rounded-lg border border-slate-200/90 bg-slate-50/60 p-2 text-[10.5px] text-slate-600 space-y-1">
+                <div class="flex items-center justify-between text-slate-800 font-medium">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="inline-block h-1.5 w-1.5 rounded-full" :class="selectedTheme.role === 'main' ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-slate-400'"></span>
+                    <span class="truncate font-semibold">{{ selectedTheme.name }}</span>
+                  </div>
+                  <span
+                    class="shrink-0 rounded px-1.5 py-0.2 text-[9.5px] font-bold uppercase tracking-wider"
+                    :class="selectedTheme.role === 'main' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200/80 text-slate-600'"
+                  >
+                    {{ selectedTheme.role === 'main' ? 'Live' : selectedTheme.role }}
+                  </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 pt-0.5 text-slate-500 border-t border-slate-200/60 text-[10px]">
+                  <div>
+                    <span class="text-slate-400">ID: </span>
+                    <span class="font-mono text-slate-700 font-semibold">{{ selectedTheme.id }}</span>
+                  </div>
+                  <div v-if="detected?.version || detected?.name">
+                    <span class="text-slate-400">Engine: </span>
+                    <span class="text-slate-700">{{ detected?.name || 'Theme' }} {{ detected?.version ? `v${detected.version}` : '' }}</span>
+                  </div>
+                  <div v-if="selectedTheme.updatedAt" class="col-span-2 truncate">
+                    <span class="text-slate-400">Cập nhật: </span>
+                    <span class="text-slate-700">{{ new Date(selectedTheme.updatedAt).toLocaleString() }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

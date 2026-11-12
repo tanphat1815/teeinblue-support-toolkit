@@ -13,7 +13,7 @@
     maxResponseText: 4000000
   };
 
-  const LIST_THEMES_Q = 'query ListThemes { onlineStore { themes(first: 50) { edges { node { id name role } } } } }';
+  const LIST_THEMES_Q = 'query ListThemes { onlineStore { themes(first: 50) { edges { node { id name role updatedAt createdAt processing processingFailed } } } } }';
 
   function extractStoreHandle() {
     const m = window.location.pathname.match(/\/store\/([^/?#]+)/);
@@ -41,7 +41,15 @@
       const edges = (json.data && json.data.onlineStore && json.data.onlineStore.themes && json.data.onlineStore.themes.edges) || [];
       const list = edges.map((e) => {
         const n = e.node || {};
-        return { id: numericId(n.id), name: String(n.name || ''), role: String(n.role || '').toLowerCase() };
+        return {
+          id: numericId(n.id),
+          name: String(n.name || ''),
+          role: String(n.role || '').toLowerCase(),
+          updatedAt: n.updatedAt ? String(n.updatedAt) : undefined,
+          createdAt: n.createdAt ? String(n.createdAt) : undefined,
+          processing: Boolean(n.processing),
+          processingFailed: Boolean(n.processingFailed)
+        };
       }).filter((t) => t.id && t.name);
       console.log('[TIB-Toolkit] Proactive GraphQL themes query result:', list);
       if (list.length) {
@@ -123,7 +131,15 @@
     if (Array.isArray(node)) { for (const c of node) extractThemes(c, acc, depth + 1); return; }
     const name = node.name || node.title;
     if (node.id != null && name && node.role && CFG.roles.has(String(node.role))) {
-      acc.push({ id: numericId(node.id), name: String(name), role: String(node.role).toLowerCase() });
+      acc.push({
+        id: numericId(node.id),
+        name: String(name),
+        role: String(node.role).toLowerCase(),
+        updatedAt: node.updatedAt || node.updated_at ? String(node.updatedAt || node.updated_at) : undefined,
+        createdAt: node.createdAt || node.created_at ? String(node.createdAt || node.created_at) : undefined,
+        processing: node.processing != null ? Boolean(node.processing) : undefined,
+        processingFailed: node.processingFailed != null ? Boolean(node.processingFailed) : undefined
+      });
     }
     for (const k of Object.keys(node)) {
       try { extractThemes(node[k], acc, depth + 1); } catch (_) {}

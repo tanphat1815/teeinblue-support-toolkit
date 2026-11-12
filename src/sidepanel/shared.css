@@ -1,20 +1,68 @@
 /* Shared section/card/input styles cho mọi tab side panel. */
-.tib-card { @apply rounded-lg border border-slate-200 bg-white; }
+.tib-card {
+  @apply rounded-xl border border-slate-200 bg-white;
+  box-shadow: 0 4px 14px -1px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+}
 .tib-sec-head { @apply flex w-full items-center gap-2 p-2.5 text-left; }
 .tib-step-num {
   @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white;
   background: #2563eb;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.45);
 }
-.tib-input { @apply w-full rounded-md border border-slate-300 p-1.5 text-sm bg-white; }
-.tib-input:focus { @apply outline-none border-brand-500; border-color: #2563eb; }
-.tib-btn { @apply rounded-md border border-slate-300 px-2.5 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-50; }
-.tib-btn-primary { @apply rounded-md bg-brand-500 px-3 py-2 font-medium text-white hover:bg-brand-600 disabled:opacity-50; background: #2563eb; }
-.tib-btn-primary:hover { background: #1d4ed8; }
+.tib-input {
+  @apply w-full rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-800 transition-all;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.tib-input:focus {
+  @apply outline-none border-brand-500 ring-2 ring-blue-500/20;
+  border-color: #2563eb;
+}
+select.tib-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 14px 14px;
+  padding-right: 1.75rem;
+  cursor: pointer;
+}
+select.tib-input::-ms-expand {
+  display: none;
+}
+.tib-btn {
+  @apply rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] disabled:opacity-50;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.tib-btn-primary {
+  @apply rounded-lg px-3 py-2 font-semibold text-white transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50;
+  background: #2563eb;
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.45), 0 1px 3px rgba(15, 23, 42, 0.1);
+}
 .tib-chip { @apply shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium; }
 .tib-muted { @apply text-xs text-slate-500; }
-.tib-warn { @apply rounded-md bg-yellow-50 p-2 text-yellow-800; }
-.tib-error { @apply rounded-md bg-red-50 p-2 text-xs text-red-700; }
-.tib-src-card { @apply flex-1 rounded-lg border p-2.5 text-center hover:bg-slate-50; }
-.tib-src-card.active { border-color: #2563eb; background: #eff6ff; }
-.tib-snip-card { @apply w-full rounded-lg border bg-white p-2 text-left hover:bg-slate-50; }
-.tib-snip-card.selected { border-color: #2563eb; background: #eff6ff; }
+.tib-warn {
+  @apply rounded-xl border border-amber-200/80 bg-amber-50/80 p-3 text-amber-900;
+  box-shadow: 0 4px 10px -1px rgba(245, 158, 11, 0.15);
+}
+.tib-error { @apply rounded-lg bg-red-50 p-2 text-xs text-red-700; }
+.tib-src-card {
+  @apply flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white p-2.5 text-center transition-all hover:bg-slate-50 hover:border-slate-300;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.tib-src-card.active {
+  @apply border-brand-500 bg-blue-50/50;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+.tib-snip-card {
+  @apply w-full rounded-xl border border-slate-200 bg-white p-2.5 text-left transition-all hover:border-slate-300;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.tib-snip-card:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+.tib-snip-card.selected {
+  @apply border-brand-500 bg-blue-50/40;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}

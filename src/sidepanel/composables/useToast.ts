@@ -4,7 +4,12 @@ export interface Toast { id: number; kind: 'success' | 'error' | 'info'; text: s
 const toasts = reactive<Toast[]>([]);
 let seq = 0;
 
-function push(kind: Toast['kind'], text: string, ms = 3500) {
+function push(kind: Toast['kind'], text: string, ms = 3000) {
+  // Tránh spam toast trùng nội dung liên tiếp
+  const existingIndex = toasts.findIndex((t) => t.text === text);
+  if (existingIndex >= 0) {
+    toasts.splice(existingIndex, 1);
+  }
   const id = ++seq;
   toasts.push({ id, kind, text });
   setTimeout(() => {

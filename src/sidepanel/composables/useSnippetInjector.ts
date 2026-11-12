@@ -52,7 +52,12 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     if (kind === 'custom' && /\/spreadsheets\/d\//.test(sourceUrl.value)) sourceUrl.value = '';
   }
   async function saveSettings() {
-    await chrome.storage.local.set({ [STORAGE.settings]: { sourceUrl: sourceUrl.value.trim(), markerNote: markerNote.value.trim() } });
+    const url = sourceUrl.value.trim();
+    if (!url) {
+      toast.error('Vui lòng nhập URL nguồn snippets (GitHub hoặc Google Sheet).');
+      return;
+    }
+    await chrome.storage.local.set({ [STORAGE.settings]: { sourceUrl: url, markerNote: markerNote.value.trim() } });
     await loadSnippets(true);
     toast.success('Đã lưu nguồn snippets.');
   }

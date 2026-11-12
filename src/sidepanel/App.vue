@@ -14,42 +14,37 @@ const tabs: Array<{ id: 'bug' | 'snippet' | 'health'; label: string; icon: IconN
   { id: 'health', label: 'Store Health', icon: 'search-lg' }
 ];
 const active = ref<(typeof tabs)[number]['id']>('bug');
-
-const pill = computed(() => {
-  if (ctx.value.kind === 'admin') return `Shopify Admin · ${ctx.value.storeHandle}`;
-  if (ctx.value.kind === 'storefront') return `Storefront · ${ctx.value.storeHandle || 'Shopify'}`;
-  return 'Không phải trang Shopify';
-});
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col">
-    <header class="sticky top-0 z-20 border-b bg-white">
-      <div class="flex items-center justify-between px-3 py-2">
-        <div class="font-semibold text-brand-600">Teeinblue Support Toolkit</div>
-        <button
-          class="inline-flex items-center justify-center rounded border p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-          :disabled="loading"
-          title="Tải lại ngữ cảnh"
-          @click="refresh"
-        >
-          <UntitledIcon name="refresh-cw" :size="13" :class="loading ? 'animate-spin text-brand-600' : ''" />
-        </button>
-      </div>
-      <div class="px-3 pb-2 text-xs text-slate-500">{{ pill }}</div>
-      <nav class="flex border-t">
+  <div class="flex min-h-screen flex-col bg-[#dbe4f0]">
+    <!-- Tab bar với style folder/browser tabs dính liền nền bên dưới -->
+    <header class="sticky top-0 z-20 bg-slate-900 pt-2 px-2 shadow-sm">
+      <nav class="flex items-end gap-1">
         <button
           v-for="t in tabs"
           :key="t.id"
-          class="flex flex-1 items-center justify-center gap-1.5 px-1 py-2 text-xs font-medium transition-colors"
-          :class="active === t.id ? 'border-b-2 border-brand-500 text-brand-600' : 'text-slate-500 hover:bg-slate-50'"
+          class="flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-semibold rounded-t-lg transition-all"
+          :class="active === t.id
+            ? 'bg-[#e8eef7] text-blue-900 shadow-[0_-1px_3px_rgba(0,0,0,0.15)] relative z-10'
+            : 'text-slate-400 hover:text-white hover:bg-slate-800/80'"
           @click="active = t.id"
         >
           <UntitledIcon :name="t.icon" :size="14" />
           <span>{{ t.label }}</span>
         </button>
+
+        <button
+          class="mb-1 inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white active:scale-95 disabled:opacity-50"
+          :disabled="loading"
+          title="Tải lại trang và ngữ cảnh"
+          @click="refresh"
+        >
+          <UntitledIcon name="refresh-cw" :size="13" :class="loading ? 'animate-spin text-blue-400' : ''" />
+        </button>
       </nav>
     </header>
+
     <main class="flex-1 p-3">
       <BugReporter v-show="active === 'bug'" :ctx="ctx" />
       <SnippetInjector v-show="active === 'snippet'" :ctx="ctx" />

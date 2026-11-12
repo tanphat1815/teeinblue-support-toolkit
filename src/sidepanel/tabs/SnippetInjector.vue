@@ -4,6 +4,7 @@ import type { TabContext } from '@/shared/types';
 import WorkflowSection from '../components/WorkflowSection.vue';
 import UntitledIcon, { type IconName } from '../components/UntitledIcon.vue';
 import SnippetHelpModal from '../components/SnippetHelpModal.vue';
+import SnippetJsonFormatModal from '../components/SnippetJsonFormatModal.vue';
 import { useSnippetInjector } from '../composables/useSnippetInjector';
 import { copyText } from '../clipboard';
 import { errMsg } from '../api';
@@ -45,6 +46,7 @@ const actionIconMap: Record<string, { icon: IconName; color: string }> = {
 const showHelpTip = ref(false);
 const unlockThemeSelect = ref(false);
 const helpModalOpen = ref(false);
+const jsonFormatModalOpen = ref(false);
 </script>
 
 <template>
@@ -283,23 +285,34 @@ const helpModalOpen = ref(false);
         </button>
       </div>
 
-      <!-- Info tip -->
-      <div class="rounded-lg bg-blue-50/80 px-2.5 py-1.5 text-[11px] text-blue-900 border border-blue-100">
+      <!-- Info tip & Format JSON Button -->
+      <div class="rounded-lg bg-blue-50/80 px-2.5 py-1.5 text-[11px] text-blue-900 border border-blue-100 space-y-1">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 min-w-0">
             <UntitledIcon name="info-circle" :size="14" class="shrink-0 text-blue-600" />
-            <span>Bạn có thể dùng commit SHA để cố định phiên bản</span>
+            <span class="truncate">Bạn có thể dùng commit SHA để cố định phiên bản</span>
           </div>
-          <button
-            type="button"
-            class="rounded p-0.5 text-blue-500 hover:bg-blue-100 hover:text-blue-700 focus:outline-none"
-            title="Bấm để xem thêm hướng dẫn"
-            @click="showHelpTip = !showHelpTip"
-          >
-            <UntitledIcon name="help-circle" :size="14" />
-          </button>
+          <div class="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 rounded bg-blue-100/70 px-1.5 py-0.5 text-[10.5px] font-semibold text-blue-800 hover:bg-blue-200/80 transition-colors"
+              title="Xem quy định format chuẩn của file JSON & cách xử lý code dài"
+              @click="jsonFormatModalOpen = true"
+            >
+              <UntitledIcon name="file" :size="11" />
+              <span>Format JSON</span>
+            </button>
+            <button
+              type="button"
+              class="rounded p-0.5 text-blue-500 hover:bg-blue-100 hover:text-blue-700 focus:outline-none"
+              title="Bấm để xem thêm hướng dẫn"
+              @click="showHelpTip = !showHelpTip"
+            >
+              <UntitledIcon name="help-circle" :size="14" />
+            </button>
+          </div>
         </div>
-        <div v-if="showHelpTip" class="mt-1.5 border-t border-blue-100 pt-1.5 text-[10.5px] leading-relaxed text-blue-800">
+        <div v-if="showHelpTip" class="border-t border-blue-100 pt-1 text-[10.5px] leading-relaxed text-blue-800">
           <p>• Thay nhánh <code>/main/</code> bằng SHA commit cụ thể (vd: <code>.../a1b2c3d/...</code>) để theme không bị ảnh hưởng ngoài ý muốn khi repository có cập nhật mới.</p>
           <p class="mt-0.5">• Code snippet sẽ được ghi thẳng vào theme Shopify của merchant: chỉ sử dụng các nguồn URL tin cậy.</p>
         </div>
@@ -498,6 +511,9 @@ const helpModalOpen = ref(false);
 
     <!-- Modal giải thích chi tiết kiến trúc & flow -->
     <SnippetHelpModal :open="helpModalOpen" @close="helpModalOpen = false" />
+
+    <!-- Modal định dạng JSON chuẩn & hướng dẫn code dài -->
+    <SnippetJsonFormatModal :open="jsonFormatModalOpen" @close="jsonFormatModalOpen = false" />
 
     <!-- confirm modal -->
     <div v-if="confirmOpen" class="fixed inset-0 z-40 flex items-end bg-black/40 p-3 sm:items-center">

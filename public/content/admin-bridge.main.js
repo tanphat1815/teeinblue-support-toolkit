@@ -6,14 +6,56 @@
   const FLAG = '__tibToolkit';
   const STATE_KEY = '__tibToolkitState';
   const CFG = {
-    appProxyPattern: /\/api\/app_proxy\/([^/?]+)/,
+    appProxyPattern: /\/api\/app_proxy\/([^/?]+)/i,
     graphQlVersion: 'unstable',
     themeGidPrefix: 'gid://shopify/OnlineStoreTheme/',
-    roles: new Set(['main', 'unpublished', 'demo', 'development', 'MAIN', 'UNPUBLISHED', 'DEMO', 'DEVELOPMENT']),
+    roles: new Set(['main', 'unpublished', 'demo', 'development', 'MAIN', 'UNPUBLISHED', 'DEMO', 'DEVELOPMENT', 'draft', 'DRAFT', 'published', 'PUBLISHED']),
     maxResponseText: 4000000
   };
 
-  const READ_Q = 'query ReadFile($themeId: ID!, $fileNames: [String!]) { onlineStore { theme(id: $themeId) { files(first: 1, filenames: $fileNames) { edges { node { filename ... on OnlineStoreThemeFile { body { ... on OnlineStoreThemeFileBodyText { content } } } } } } } } }';
+  const LIST_THEMES_Q = 'query ListThemes { onlineStore { themes(first: 50) { edges { node { id name role } } } } }';
+
+  function extractStoreHandle() {
+    const m = window.location.pathname.match(/\/store\/([^/?#]+)/);
+    return m ? m[1] : '';
+  }
+
+  function findCsrfToken() {
+    // Thử tìm trong meta tag hoặc cookie
+    const meta = document.querySelector('meta[name="csrf-token"]') || document.querySelector('meta[name="shopify-csrf-token"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    const m = document.cookie.match(/_shopify_y=([^;]+)/);
+    return '';
+  }
+
+  let isFetchingThemes = false;
+  let hasFetchedThemes = false;
+
+  async function fetchThemesViaGql() {
+    if (isFetchingThemes || hasFetchedThemes) return [];
+    try {
+      if (!S.session || !S.session.handle || !S.session.headers['x-csrf-token']) return [];
+      isFetchingThemes = true;
+      console.log('[TIB-Toolkit] Proactively querying themes via GraphQL with handle:', S.session.handle);
+      const json = await gql('ListThemes', LIST_THEMES_Q, {});
+      const edges = (json.data && json.data.onlineStore && json.data.onlineStore.themes && json.data.onlineStore.themes.edges) || [];
+      const list = edges.map((e) => {
+        const n = e.node || {};
+        return { id: numericId(n.id), name: String(n.name || ''), role: String(n.role || '').toLowerCase() };
+      }).filter((t) => t.id && t.name);
+      console.log('[TIB-Toolkit] Proactive GraphQL themes query result:', list);
+      if (list.length) {
+        hasFetchedThemes = true;
+        pushThemes(list);
+      }
+      return list;
+    } catch (err) {
+      console.warn('[TIB-Toolkit] Failed to proactively query themes via GraphQL:', err);
+      return [];
+    } finally {
+      isFetchingThemes = false;
+    }
+  }
   const LIST_Q = 'query ListFiles($themeId: ID!, $first: Int!, $after: String) { onlineStore { theme(id: $themeId) { files(first: $first, after: $after) { edges { cursor node { filename } } pageInfo { hasNextPage endCursor } } } } }';
   const WRITE_M = 'mutation WriteFiles($themeId: ID!, $files: [OnlineStoreThemeFilesUpsertFileInput!]!) { themeFilesUpsert(themeId: $themeId, files: $files) { upsertedThemeFiles { filename } userErrors { filename code message } } }';
   // UNVERIFIED: dùng cho Undo file mới tạo. Phải xử lý lỗi êm (báo "xoá thủ công").
@@ -45,10 +87,35 @@
   }
 
   function captureAppProxy(url, headers) {
-    const m = String(url || '').match(CFG.appProxyPattern);
-    if (!m || !headers['x-csrf-token']) return;
-    S.session = { headers: { ...headers }, handle: m[1], ts: Date.now() };
-    post('session', { handle: m[1] });
+    const urlStr = String(url || '');
+    const m = urlStr.match(CFG.appProxyPattern);
+    const csrf = headers['x-csrf-token'];
+    
+    // Nếu bắt được app_proxy rõ ràng
+    if (m && csrf) {
+      const isNew = !S.session || S.session.handle !== m[1];
+      S.session = { headers: { ...headers }, handle: m[1], ts: Date.now() };
+      console.log('[TIB-Toolkit] Captured Shopify app proxy session:', m[1]);
+      post('session', { handle: m[1] });
+      if (isNew || !S.themes.length) {
+        fetchThemesViaGql();
+      }
+      return;
+    }
+
+    // Fallback: nếu bất kỳ request nào có x-csrf-token trên trang admin.shopify.com/store/<handle>
+    if (csrf) {
+      const handle = extractStoreHandle();
+      if (handle) {
+        const isNew = !S.session || S.session.handle !== handle;
+        S.session = { headers: { ...headers }, handle, ts: Date.now() };
+        console.log('[TIB-Toolkit] Captured session from store path & csrf header:', handle);
+        post('session', { handle });
+        if (isNew || !S.themes.length) {
+          fetchThemesViaGql();
+        }
+      }
+    }
   }
 
   function extractThemes(node, acc, depth) {
@@ -66,8 +133,16 @@
   function pushThemes(found) {
     if (!found.length) return;
     const map = new Map(S.themes.map((t) => [t.id, t]));
-    for (const t of found) map.set(t.id, t);
+    let hasNew = false;
+    for (const t of found) {
+      if (!map.has(t.id)) {
+        map.set(t.id, t);
+        hasNew = true;
+      }
+    }
+    if (!hasNew && S.themes.length) return; // Không bắn event nếu không có theme mới
     S.themes = [...map.values()];
+    console.log('[TIB-Toolkit] Total themes captured in page:', S.themes);
     post('themes', { themes: S.themes });
   }
 
@@ -180,6 +255,10 @@
   async function handle(action, p) {
     switch (action) {
       case 'getCapturedThemes':
+        if (!S.themes.length && S.session) {
+          console.log('[TIB-Toolkit] getCapturedThemes called with empty themes, triggering fetchThemesViaGql');
+          await fetchThemesViaGql();
+        }
         return { ok: true, themes: S.themes, hasSession: !!S.session, handle: S.session ? S.session.handle : '', sessionTs: S.session ? S.session.ts : 0 };
       case 'readFile': return readFile(p.themeId, p.filename);
       case 'listFiles': return listFiles(p.themeId);

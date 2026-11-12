@@ -35,20 +35,45 @@ function commentPair(filename: string): [string, string] | null {
 
 export const markerStart = (id: string) => `tib-snippet:${id} start`;
 
-export function wrapWithMarker(id: string, filename: string, code: string): string {
+export interface MarkerOpts { at?: string; note?: string }
+
+/** Strip ký tự có thể phá comment theme (liquid/css/js) khỏi ghi chú tự do. */
+export function sanitizeMarkerNote(note: string): string {
+  return String(note || '')
+    .replace(/[{]/g, '(')
+    .replace(/[}]/g, ')')
+    .replace(/\/\*/g, '/ *')
+    .replace(/\*\//g, '* /')
+    .replace(/\/\//g, '/ /')
+    .replace(/-->/g, '-- >')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+}
+
+export function markerStartLine(id: string, opts: MarkerOpts = {}): string {
+  const parts = [markerStart(id)];
+  if (opts.at) parts.push(opts.at);
+  const note = sanitizeMarkerNote(opts.note || '');
+  if (note) parts.push(note);
+  return parts.join(' · ');
+}
+
+export function wrapWithMarker(id: string, filename: string, code: string, opts: MarkerOpts = {}): string {
   const pair = commentPair(filename);
   const body = code.trim();
   if (!pair) return body;
-  return `${pair[0]}${markerStart(id)}${pair[1]}\n${body}\n${pair[0]}tib-snippet:${id} end${pair[1]}`;
+  return `${pair[0]}${markerStartLine(id, opts)}${pair[1]}\n${body}\n${pair[0]}tib-snippet:${id} end${pair[1]}`;
 }
 
 export interface WritePlan { skipped: boolean; reason?: string; content: string; resolvedMode: string }
 
 export function planWrite(i: {
   current: string; exists: boolean; mode: Mode; filename: string; code: string; snippetId: string;
+  marker?: MarkerOpts;
 }): WritePlan {
   const code = i.code.trim();
-  const wrapped = wrapWithMarker(i.snippetId, i.filename, code);
+  const wrapped = wrapWithMarker(i.snippetId, i.filename, code, i.marker);
   if (!code) return { skipped: true, reason: 'Empty code.', content: i.current, resolvedMode: i.mode };
   if (!i.exists) return { skipped: false, content: wrapped + '\n', resolvedMode: 'create' };
   if (i.current.includes(markerStart(i.snippetId))) {

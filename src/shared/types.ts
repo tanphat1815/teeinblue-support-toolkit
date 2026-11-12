@@ -3,7 +3,7 @@ import type { MODES } from './constants';
 export type Mode = (typeof MODES)[number];
 export type Status = 'ok' | 'warning' | 'error';
 
-export interface SnippetTarget { filename: string; mode: Mode; code: string }
+export interface SnippetTarget { filename: string; mode: Mode; code: string; snippetId?: string }
 export interface Snippet {
   id: string;
   title: string;
@@ -67,14 +67,29 @@ export interface InjectResult {
   skipped: { filename: string; reason: string }[];
   undoId?: string;
 }
-export interface UndoFile { filename: string; existed: boolean; previous: string }
+export interface UndoFile {
+  filename: string; existed: boolean; previous: string;
+  snippetIds: string[]; injectedAt: string; expected: string;
+}
 export interface UndoRecord {
-  id: string; ts: number; storeHandle: string; themeId: string; themeName: string; snippetId: string; files: UndoFile[];
+  id: string; ts: number; createdAt: string; storeHandle: string;
+  themeId: string; themeName: string; themeRole: string;
+  snippetId: string; snippetIds: string[]; markerNote: string;
+  files: UndoFile[];
 }
 export interface UndoSummary {
-  id: string; ts: number; storeHandle: string; themeId: string; themeName: string; snippetId: string;
+  id: string; ts: number; createdAt: string; storeHandle: string;
+  themeId: string; themeName: string; themeRole: string;
+  snippetId: string; snippetIds: string[]; markerNote: string;
   files: { filename: string; existed: boolean }[];
 }
-export interface UndoResult { restored: string[]; deleted: string[]; manual: string[] }
+export interface UndoFileResult { filename: string; reason?: string }
+export interface UndoResult { restored: string[]; deleted: string[]; manual: UndoFileResult[] }
+
+export interface PreviewRow {
+  filename: string; exists: boolean;
+  action: 'CREATE' | 'APPEND' | 'INSERT' | 'REPLACE' | 'SKIP';
+  detail: string; line: number | null; snippetIds: string[];
+}
 
 export type Envelope<T> = { ok: true; data: T } | { ok: false; error: string };

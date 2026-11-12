@@ -1,9 +1,9 @@
 import { MSG, STORAGE, UNDO_MAX } from '@/shared/constants';
 import type { Req } from '@/shared/messages';
 import type {
-  AdminStatus, DetectedTheme, InjectResult, ThemeInfo, UndoFile, UndoRecord, UndoResult, UndoSummary
+  AdminStatus, DetectedTheme, InjectResult, PreviewRow, ThemeInfo, UndoFile, UndoRecord, UndoResult, UndoSummary
 } from '@/shared/types';
-import { isAllowedFilename, parseThemeInfo, planWrite } from '@/services/theme-writer';
+import { isAllowedFilename, markerStart, parseThemeInfo, planWrite } from '@/services/theme-writer';
 import { activeTab } from './storefront';
 
 const ADMIN_FRAME_RE = /^https:\/\/(admin\.shopify\.com\/store\/|online-store-web\.shopifyapps\.com\/)/i;
@@ -129,18 +129,72 @@ async function writeUndo(list: UndoRecord[]) {
 export async function listUndo(storeHandle: string): Promise<UndoSummary[]> {
   return (await readUndo())
     .filter((r) => r.storeHandle === storeHandle)
-    .map(({ files, ...r }) => ({ ...r, files: files.map((f) => ({ filename: f.filename, existed: f.existed })) }));
+    .map(({ files, ...r }) => ({
+      ...r,
+      createdAt: r.createdAt || new Date(r.ts).toISOString(),
+      themeRole: (r as UndoRecord).themeRole || '',
+      snippetIds: (r as UndoRecord).snippetIds?.length ? (r as UndoRecord).snippetIds : [r.snippetId],
+      markerNote: (r as UndoRecord).markerNote || '',
+      files: files.map((f) => ({ filename: f.filename, existed: f.existed }))
+    }));
+}
+
+// ---- Preview (đọc content hiện tại, chạy planWrite KHÔNG ghi) — dòng chỉ là ước lượng
+export async function previewInject(adminTabId: number, themeId: string, targets: { filename: string; mode: any; code: string; snippetId?: string }[]): Promise<PreviewRow[]> {
+  const rows: PreviewRow[] = [];
+  const cache = new Map<string, { exists: boolean; content: string }>();
+  const lineOf = (content: string, idx: number) => content.slice(0, idx).split('\n').length;
+  for (const t of targets) {
+    let cur = cache.get(t.filename);
+    if (!cur) {
+      const r = await callAdmin<{ exists: boolean; content: string }>(adminTabId, 'readFile', { themeId, filename: t.filename });
+      cur = { exists: r.exists, content: r.content || '' };
+      cache.set(t.filename, cur);
+    }
+    const sid = t.snippetId || '';
+    const plan = planWrite({ current: cur.content, exists: cur.exists, mode: t.mode, filename: t.filename, code: t.code, snippetId: sid });
+    if (plan.skipped) {
+      rows.push({ filename: t.filename, exists: cur.exists, action: 'SKIP', detail: plan.reason || 'Skipped.', line: null, snippetIds: [sid] });
+      continue;
+    }
+    let action: PreviewRow['action'] = 'APPEND';
+    let line: number | null = null;
+    let detail = plan.resolvedMode;
+    if (plan.resolvedMode === 'create' && !cur.exists) { action = 'CREATE'; detail = 'File chưa tồn tại — sẽ tạo mới.'; }
+    else if (plan.resolvedMode === 'replace') { action = 'REPLACE'; detail = 'Ghi đè toàn bộ file.'; }
+    else {
+      const mHead = plan.resolvedMode === 'before-head' ? cur.content.search(/\s*<\/head>/i) : -1;
+      const mBody = plan.resolvedMode === 'before-body' ? cur.content.search(/\s*<\/body>/i) : -1;
+      const m = mHead >= 0 ? mHead : mBody;
+      if (m >= 0) { action = 'INSERT'; line = lineOf(cur.content, m); detail = `${plan.resolvedMode} (≈ dòng ${line}, ước lượng tại thời điểm đọc).`; }
+      else { action = 'APPEND'; line = cur.content ? cur.content.split('\n').length + 1 : 1; detail = `Nối vào cuối file (≈ dòng ${line}, ước lượng).`; }
+    }
+    cache.set(t.filename, { exists: true, content: plan.content });
+    rows.push({ filename: t.filename, exists: cur.exists, action, detail, line, snippetIds: [sid] });
+  }
+  // gộp các target cùng filename thành 1 dòng
+  const merged = new Map<string, PreviewRow>();
+  for (const r of rows) {
+    const e = merged.get(r.filename);
+    if (!e) merged.set(r.filename, { ...r, snippetIds: [...r.snippetIds] });
+    else e.snippetIds.push(...r.snippetIds.filter((s) => !e.snippetIds.includes(s)));
+  }
+  return [...merged.values()];
 }
 
 // ---- Inject
 export async function inject(req: Extract<Req, { type: 'INJECT' }>): Promise<InjectResult> {
-  const { adminTabId, themeId, targets, snippetId } = req;
+  const { adminTabId, themeId, targets } = req;
+  const snippetIds = req.snippetIds?.length ? req.snippetIds : [req.snippetId];
+  const markerNote = (req.markerNote || '').trim();
+  const injectedAt = new Date().toISOString();
   if (!targets.length) throw new Error('Không có target để inject.');
   for (const t of targets) if (!isAllowedFilename(t.filename)) throw new Error(`Filename bị chặn/không hợp lệ: ${t.filename}`);
 
   const plans: { filename: string; content: string; mode: string }[] = [];
   const skipped: InjectResult['skipped'] = [];
   const backups: UndoFile[] = [];
+  const fileSnippetIds = new Map<string, Set<string>>();
   const working = new Map<string, { exists: boolean; content: string }>(); // nhiều target cùng 1 file
 
   for (const t of targets) {
@@ -148,9 +202,13 @@ export async function inject(req: Extract<Req, { type: 'INJECT' }>): Promise<Inj
     if (!cur) {
       const r = await callAdmin<{ exists: boolean; content: string }>(adminTabId, 'readFile', { themeId, filename: t.filename });
       cur = { exists: r.exists, content: r.content };
-      backups.push({ filename: t.filename, existed: r.exists, previous: r.content });
+      backups.push({ filename: t.filename, existed: r.exists, previous: r.content, snippetIds: [], injectedAt, expected: '' });
     }
-    const plan = planWrite({ current: cur.content, exists: cur.exists, mode: t.mode, filename: t.filename, code: t.code, snippetId });
+    const sid = (t as { snippetId?: string }).snippetId || snippetIds[0] || req.snippetId;
+    let ids = fileSnippetIds.get(t.filename);
+    if (!ids) { ids = new Set(); fileSnippetIds.set(t.filename, ids); }
+    ids.add(sid);
+    const plan = planWrite({ current: cur.content, exists: cur.exists, mode: t.mode, filename: t.filename, code: t.code, snippetId: sid, marker: { at: injectedAt, note: markerNote } });
     if (plan.skipped) { skipped.push({ filename: t.filename, reason: plan.reason || 'Skipped.' }); working.set(t.filename, cur); continue; }
     working.set(t.filename, { exists: true, content: plan.content });
     const i = plans.findIndex((p) => p.filename === t.filename);
@@ -163,9 +221,15 @@ export async function inject(req: Extract<Req, { type: 'INJECT' }>): Promise<Inj
   await callAdmin(adminTabId, 'writeFiles', { themeId, files: plans.map((p) => ({ filename: p.filename, content: p.content })) });
 
   const changed = new Set(plans.map((p) => p.filename));
+  const expectedByFile = new Map(plans.map((p) => [p.filename, p.content]));
   const record: UndoRecord = {
-    id: `undo_${Date.now().toString(36)}`, ts: Date.now(), storeHandle: req.storeHandle, themeId,
-    themeName: req.themeName, snippetId, files: backups.filter((b) => changed.has(b.filename))
+    id: `undo_${Date.now().toString(36)}`, ts: Date.now(), createdAt: injectedAt,
+    storeHandle: req.storeHandle, themeId,
+    themeName: req.themeName, themeRole: req.themeRole || '',
+    snippetId: snippetIds[0] || req.snippetId, snippetIds, markerNote,
+    files: backups
+      .filter((b) => changed.has(b.filename))
+      .map((b) => ({ ...b, snippetIds: [...(fileSnippetIds.get(b.filename) || [])], expected: expectedByFile.get(b.filename) || '' }))
   };
   await writeUndo([record, ...(await readUndo())]);
   return { status: 'WRITTEN', written: plans.map((p) => ({ filename: p.filename, mode: p.mode })), skipped, undoId: record.id };
@@ -177,18 +241,47 @@ export async function undo(adminTabId: number, undoId: string): Promise<UndoResu
   if (!rec) throw new Error('Không tìm thấy bản ghi undo.');
   const result: UndoResult = { restored: [], deleted: [], manual: [] };
 
+  // Đọc lại nội dung hiện tại để phát hiện file bị sửa/xoá tay sau khi inject.
+  const current = new Map<string, { exists: boolean; content: string }>();
+  for (const f of rec.files) {
+    if (current.has(f.filename)) continue;
+    try {
+      const r = await callAdmin<{ exists: boolean; content: string }>(adminTabId, 'readFile', { themeId: rec.themeId, filename: f.filename });
+      current.set(f.filename, { exists: r.exists, content: r.content || '' });
+    } catch {
+      current.set(f.filename, { exists: false, content: '' });
+    }
+  }
+
   const toRestore = rec.files.filter((f) => f.existed);
   if (toRestore.length) {
     await callAdmin(adminTabId, 'writeFiles', { themeId: rec.themeId, files: toRestore.map((f) => ({ filename: f.filename, content: f.previous })) });
-    result.restored = toRestore.map((f) => f.filename);
+    result.restored = toRestore.map((f) => {
+      const cur = current.get(f.filename);
+      return (cur && cur.exists && f.expected && cur.content !== f.expected)
+        ? `${f.filename} (file đã bị sửa sau khi inject lúc ${f.injectedAt || rec.createdAt || ''} — đã khôi phục về bản backup)`
+        : f.filename;
+    });
   }
-  const toDelete = rec.files.filter((f) => !f.existed).map((f) => f.filename);
-  if (toDelete.length) {
+  const toDelete = rec.files.filter((f) => !f.existed);
+  for (const f of toDelete) {
+    const cur = current.get(f.filename);
+    if (cur && !cur.exists) {
+      result.manual.push({ filename: f.filename, reason: `File đã không còn tồn tại (có thể đã bị xoá tay sau khi inject lúc ${f.injectedAt || rec.createdAt || ''}) — không còn gì để undo.` });
+      continue;
+    }
+    const hasMarker = (f.snippetIds || []).some((sid) => cur && cur.exists && cur.content.includes(markerStart(sid)));
+    if (cur && cur.exists && !(f.snippetIds || []).length) {
+      // record cũ (trước refactor) không có snippetIds → vẫn thử xoá như trước
+    } else if (cur && cur.exists && !hasMarker) {
+      result.manual.push({ filename: f.filename, reason: `Không tìm thấy marker inject trong file hiện tại (có thể đã bị sửa/xoá tay sau ${f.injectedAt || rec.createdAt || ''}) — cần kiểm tra và xoá thủ công trong Theme Code Editor.` });
+      continue;
+    }
     try {
-      await callAdmin(adminTabId, 'deleteFiles', { themeId: rec.themeId, filenames: toDelete });
-      result.deleted = toDelete;
+      await callAdmin(adminTabId, 'deleteFiles', { themeId: rec.themeId, filenames: [f.filename] });
+      result.deleted.push(f.filename);
     } catch {
-      result.manual = toDelete; // API xoá chưa xác thực → báo xoá thủ công
+      result.manual.push({ filename: f.filename, reason: 'API xoá file chưa được xác thực — cần xoá thủ công trong Theme Code Editor.' }); // API xoá chưa xác thực → báo xoá thủ công
     }
   }
   await writeUndo(list.filter((r) => r.id !== undoId));

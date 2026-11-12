@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import UntitledIcon from './UntitledIcon.vue';
 
 withDefaults(defineProps<{ step?: string; title: string; subtitle?: string }>(), { step: '', subtitle: '' });
 const open = ref(true);
@@ -12,7 +13,9 @@ const open = ref(true);
         <span class="block text-sm font-semibold">{{ title }}</span>
         <span v-if="subtitle" class="tib-muted block">{{ subtitle }}</span>
       </span>
-      <span class="text-slate-400">{{ open ? '▴' : '▾' }}</span>
+      <span class="text-slate-400">
+        <UntitledIcon :name="open ? 'chevron-up' : 'chevron-down'" :size="14" />
+      </span>
     </button>
     <div v-show="open" class="space-y-2 border-t border-slate-100 p-2.5">
       <slot />

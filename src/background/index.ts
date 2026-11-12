@@ -1,7 +1,7 @@
 import { MSG } from '@/shared/constants';
 import type { Req } from '@/shared/messages';
 import { loadSnippets } from '@/services/snippets';
-import { adminStatus, clearTabState, detectTheme, inject, listUndo, onSessionCaptured, onThemesCaptured, openThemes, previewInject, undo } from './admin';
+import { adminStatus, clearTabState, detectTheme, inject, listUndo, onSessionCaptured, onThemesCaptured, openThemes, previewInject, touchTabActive, undo } from './admin';
 import { captureBug, getTabContext, runHealth } from './storefront';
 
 const setPanel = () => chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
@@ -9,8 +9,10 @@ chrome.runtime.onInstalled.addListener(setPanel);
 chrome.runtime.onStartup.addListener(setPanel);
 
 chrome.tabs.onRemoved.addListener((id) => clearTabState(id));
+chrome.tabs.onActivated.addListener((info) => touchTabActive(info.tabId));
 chrome.tabs.onUpdated.addListener((id, info, tab) => {
-  if (info.status === 'loading' && /^https:\/\/admin\.shopify\.com\//.test(tab.url || '')) clearTabState(id);
+  // Không xóa tab state khi status === 'loading' vì Shopify SPA chuyển route liên tục sẽ làm mất session
+  if (tab.url && /^https:\/\/admin\.shopify\.com\/store\//.test(tab.url)) touchTabActive(id);
 });
 
 async function handle(req: Req): Promise<unknown> {
@@ -35,10 +37,12 @@ chrome.runtime.onMessage.addListener((msg: any, sender, sendResponse) => {
   // từ content script (admin-relay.js)
   if (msg.type === MSG.CONTENT_THEMES && sender.tab?.id != null) {
     onThemesCaptured(sender.tab.id, msg.themes || []);
+    chrome.runtime.sendMessage({ type: MSG.ADMIN_STATE_UPDATED, tabId: sender.tab.id }).catch(() => {});
     return false;
   }
   if (msg.type === MSG.CONTENT_SESSION && sender.tab?.id != null) {
     onSessionCaptured(sender.tab.id, sender.frameId ?? 0, msg.handle || '');
+    chrome.runtime.sendMessage({ type: MSG.ADMIN_STATE_UPDATED, tabId: sender.tab.id }).catch(() => {});
     return false;
   }
 

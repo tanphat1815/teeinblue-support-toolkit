@@ -11,14 +11,17 @@ const NO_SESSION =
   'NO_SESSION: Chưa bắt được session Shopify. Mở Shopify Admin → Online Store → Themes, đợi danh sách theme load xong rồi thử lại (nếu vừa reload extension, hãy reload tab Admin).';
 
 interface Sess { frameId: number; handle: string; ts: number }
-interface TabState { themes: ThemeInfo[]; sessions: Map<number, Sess> }
+interface TabState { themes: ThemeInfo[]; sessions: Map<number, Sess>; lastActiveTs: number }
 const states = new Map<number, TabState>();
 class BridgeError extends Error {}
 
 const state = (tabId: number): TabState => {
-  if (!states.has(tabId)) states.set(tabId, { themes: [], sessions: new Map() });
+  if (!states.has(tabId)) states.set(tabId, { themes: [], sessions: new Map(), lastActiveTs: Date.now() });
   return states.get(tabId)!;
 };
+export function touchTabActive(tabId: number) {
+  if (states.has(tabId)) states.get(tabId)!.lastActiveTs = Date.now();
+}
 const bestSession = (s: TabState): Sess | null => [...s.sessions.values()].sort((a, b) => b.ts - a.ts)[0] || null;
 export const handleFromUrl = (url: string) => url.match(/\/store\/([^/?#]+)/)?.[1] || '';
 
@@ -50,7 +53,8 @@ const ask = (tabId: number, frameId: number, action: string, payload: unknown): 
 
 async function refresh(tabId: number) {
   const s = state(tabId);
-  const frames = (await getFrames(tabId)).filter((f) => ADMIN_FRAME_RE.test(f.url));
+  const allFrames = await getFrames(tabId);
+  const frames = allFrames.filter((f) => ADMIN_FRAME_RE.test(f.url) || f.frameId === 0);
   await Promise.all(frames.map(async (f) => {
     try {
       const r = await ask(tabId, f.frameId, 'getCapturedThemes', {});
@@ -86,10 +90,27 @@ async function callAdmin<T = any>(tabId: number, action: string, payload: Record
 async function findAdminTab(storeHandle?: string): Promise<chrome.tabs.Tab | null> {
   const cur = await activeTab();
   const isAdmin = (t?: chrome.tabs.Tab | null) => !!t?.url && /^https:\/\/admin\.shopify\.com\/store\//.test(t.url);
-  if (!storeHandle) return isAdmin(cur) ? cur : (await chrome.tabs.query({ url: 'https://admin.shopify.com/store/*' }))[0] || null;
   const all = await chrome.tabs.query({ url: 'https://admin.shopify.com/store/*' });
-  const match = all.filter((t) => handleFromUrl(t.url || '') === storeHandle); // KHÔNG fallback sang store khác
-  return match.find((t) => t.id === cur?.id) || match.find((t) => t.active) || match[0] || null;
+
+  // Nếu không chỉ định storeHandle: ưu tiên tab hiện tại nếu là Admin, nếu không thì chọn tab Admin tương tác gần nhất
+  if (!storeHandle) {
+    if (isAdmin(cur)) return cur;
+    if (!all.length) return null;
+    return all.sort((a, b) => {
+      const tsA = (a.id && states.get(a.id)?.lastActiveTs) || 0;
+      const tsB = (b.id && states.get(b.id)?.lastActiveTs) || 0;
+      return tsB - tsA;
+    })[0];
+  }
+
+  // Nếu có storeHandle cụ thể: tìm đúng tab thuộc storeHandle đó
+  const match = all.filter((t) => handleFromUrl(t.url || '') === storeHandle);
+  if (!match.length) return null;
+  return match.find((t) => t.id === cur?.id) || match.find((t) => t.active) || match.sort((a, b) => {
+    const tsA = (a.id && states.get(a.id)?.lastActiveTs) || 0;
+    const tsB = (b.id && states.get(b.id)?.lastActiveTs) || 0;
+    return tsB - tsA;
+  })[0];
 }
 
 export async function adminStatus(storeHandle?: string): Promise<AdminStatus> {

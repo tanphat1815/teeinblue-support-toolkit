@@ -28,6 +28,13 @@ async function handle(req: Req): Promise<unknown> {
     case 'PREVIEW_INJECT': return previewInject(req.adminTabId, req.themeId, req.targets);
     case 'FETCH_SNIPPETS': return loadSnippets(req.sourceUrl, req.force);
     case 'OPEN_THEMES': return openThemes(req.storeHandle);
+    case 'RELOAD_ADMIN_TAB': {
+      if (req.tabId) {
+        await chrome.tabs.reload(req.tabId);
+        return { ok: true };
+      }
+      return { ok: false };
+    }
   }
 }
 

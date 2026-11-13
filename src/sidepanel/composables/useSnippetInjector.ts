@@ -135,6 +135,25 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     await call({ type: 'OPEN_THEMES', storeHandle: handle });
   }
 
+  const reloadingAdminTab = ref(false);
+  async function reloadAdminTab() {
+    const tabId = admin.value?.adminTabId;
+    if (!tabId) return;
+    reloadingAdminTab.value = true;
+    try {
+      await call({ type: 'RELOAD_ADMIN_TAB', tabId });
+      toast.success('Đã gửi lệnh reload tab Admin.');
+      // Chờ một chút rồi refresh admin status
+      setTimeout(() => {
+        refreshAdmin();
+        reloadingAdminTab.value = false;
+      }, 1500);
+    } catch (e) {
+      toast.error(errMsg(e));
+      reloadingAdminTab.value = false;
+    }
+  }
+
   function openThemeEditor(tid?: string) {
     const id = tid || themeId.value;
     const handle = targetStoreHandle.value;
@@ -343,6 +362,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
     snippets, source, snippetsError, loadingSnippets, loadSnippets,
     admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
+    reloadAdminTab, reloadingAdminTab,
     query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
     selectedIds, selectedSnippets, toggleSnippet, clearSelection, expandedId, toggleExpand,
     useCustom, customKind, customFolder, customName, customMode, customCode, addReference,

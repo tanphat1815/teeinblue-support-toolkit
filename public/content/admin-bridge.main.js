@@ -294,7 +294,24 @@
     post('result', { requestId: d.requestId, result });
   });
 
+  function tryInitSessionFromPage() {
+    const handle = extractStoreHandle();
+    const csrf = findCsrfToken();
+    if (handle && csrf && !S.session) {
+      S.session = { headers: { 'x-csrf-token': csrf, 'content-type': 'application/json' }, handle, ts: Date.now() };
+      console.log('[TIB-Toolkit] Initialized session directly from page DOM/cookie:', handle);
+      post('session', { handle });
+      fetchThemesViaGql();
+    }
+  }
+
+  tryInitSessionFromPage();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInitSessionFromPage);
+  }
+
   setTimeout(() => {
+    tryInitSessionFromPage();
     if (S.themes.length) post('themes', { themes: S.themes });
     if (S.session) post('session', { handle: S.session.handle });
   }, 1500);

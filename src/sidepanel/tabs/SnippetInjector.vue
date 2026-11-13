@@ -18,6 +18,7 @@ const {
   toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
   snippets, source, snippetsError, loadingSnippets, loadSnippets,
   admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
+  reloadAdminTab, reloadingAdminTab,
   query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
   selectedIds, toggleSnippet, clearSelection, expandedId, toggleExpand,
   useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
@@ -115,10 +116,33 @@ const jsonFormatModalOpen = ref(false);
             </div>
           </div>
 
+          <!-- Cách ưu tiên: Nếu đã có tab Admin (như đang xem sản phẩm, orders, settings...) nhưng chưa bắt được session -->
+          <div v-if="admin?.adminTabId" class="rounded-lg border border-emerald-300 bg-emerald-50/70 p-2.5 space-y-2 shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-emerald-900 text-[11px] uppercase tracking-wide flex items-center gap-1.5">
+                <UntitledIcon name="zap" :size="13" class="text-emerald-600" />
+                <span>Cách nhanh nhất: Tải lại tab Admin hiện tại</span>
+              </span>
+              <span class="rounded bg-emerald-200/80 px-1.5 py-0.2 text-[9.5px] font-bold text-emerald-800 uppercase">Khuyên dùng</span>
+            </div>
+            <p class="text-[11px] text-emerald-950 leading-snug">
+              Bạn đang mở trang Admin của <b class="font-mono text-emerald-900">{{ storeDomain }}</b>. Bấm vào đây để tải lại tab đó và tự động bắt session/themes mà không cần mở thêm tab mới:
+            </p>
+
+            <button
+              class="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50"
+              :disabled="reloadingAdminTab"
+              @click="reloadAdminTab"
+            >
+              <UntitledIcon name="refresh-cw" :size="13" :class="reloadingAdminTab ? 'animate-spin' : ''" />
+              <span>{{ reloadingAdminTab ? 'Đang tải lại tab Admin…' : 'Reload tab Admin để lấy Session' }}</span>
+            </button>
+          </div>
+
           <!-- Cách 1: Qua Partner Dashboard (Khuyên dùng khi support khách) -->
           <div class="rounded-lg border border-slate-200/90 bg-white p-2.5 space-y-2 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="font-semibold text-slate-800 text-[11px] uppercase tracking-wide">Cách 1: Qua Partner Dashboard</span>
+              <span class="font-semibold text-slate-800 text-[11px] uppercase tracking-wide">{{ admin?.adminTabId ? 'Cách 2: Qua Partner Dashboard' : 'Cách 1: Qua Partner Dashboard' }}</span>
               <!-- Partner switcher tone xanh -->
               <div class="inline-flex rounded-md bg-blue-100/70 p-0.5 text-[11px] border border-blue-200/60">
                 <button
@@ -147,9 +171,9 @@ const jsonFormatModalOpen = ref(false);
             </button>
           </div>
 
-          <!-- Cách 2: Đăng nhập trực tiếp (Nếu đã có quyền hoặc đang login sẵn) -->
+          <!-- Cách tiếp theo: Mở Online Store Themes -->
           <div class="rounded-lg border border-slate-200/90 bg-white p-2.5 space-y-2 shadow-sm">
-            <span class="block font-semibold text-slate-800 text-[11px] uppercase tracking-wide">Cách 2: Đăng nhập trực tiếp</span>
+            <span class="block font-semibold text-slate-800 text-[11px] uppercase tracking-wide">{{ admin?.adminTabId ? 'Cách 3: Mở Online Store Themes' : 'Cách 2: Đăng nhập trực tiếp' }}</span>
             <p class="text-[11px] text-slate-500">
               Dành cho trường hợp bạn đã đăng nhập sẵn hoặc có tài khoản staff trực tiếp trên store:
             </p>

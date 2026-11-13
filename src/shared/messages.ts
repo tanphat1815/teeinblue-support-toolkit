@@ -22,4 +22,5 @@ export type Req =
   | { type: 'UNDO'; adminTabId: number; undoId: string }
   | { type: 'PREVIEW_INJECT'; adminTabId: number; themeId: string; targets: SnippetTarget[] }
   | { type: 'FETCH_SNIPPETS'; sourceUrl: string; force?: boolean }
-  | { type: 'OPEN_THEMES'; storeHandle: string };
+  | { type: 'OPEN_THEMES'; storeHandle: string }
+  | { type: 'RELOAD_ADMIN_TAB'; tabId: number };

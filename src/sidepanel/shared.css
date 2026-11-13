@@ -4,6 +4,11 @@
   box-shadow: 0 4px 14px -1px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
 }
 
+/* Nổi khối cho các button/tab đang active */
+.tib-active-elevated {
+  box-shadow: 0 4px 14px -1px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+}
+
 .tib-sec-head {
   @apply flex w-full items-center gap-2 p-2.5 text-left;
 }

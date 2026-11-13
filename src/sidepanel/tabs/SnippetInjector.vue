@@ -170,7 +170,7 @@ function handleViewAllFiltered() {
                   :key="p.id"
                   type="button"
                   class="rounded px-2.5 py-0.5 font-medium transition-all"
-                  :class="partnerId === p.id ? 'bg-white text-brand-600 shadow-2xs font-semibold' : 'text-blue-900/70 hover:text-brand-600'"
+                  :class="partnerId === p.id ? 'bg-white text-brand-600 tib-active-elevated font-semibold' : 'text-blue-900/70 hover:text-brand-600'"
                   @click="setPartnerId(p.id)"
                 >
                   {{ p.id === 'collab' ? 'Collaborations' : 'Staging' }}
@@ -499,11 +499,11 @@ function handleViewAllFiltered() {
       </template>
 
       <!-- Sub-tabs chuyển đổi giữa Library và Custom Code -->
-      <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium bg-blue-100/70 p-0.5 text-[11px] border border-blue-200/60">
+      <div class="flex rounded-lg bg-blue-100/70 p-0.5 text-xs font-medium border border-blue-200/60">
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-all"
-          :class="!useCustom ? 'bg-white text-brand-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'"
+          :class="!useCustom ? 'bg-white text-brand-600 tib-active-elevated font-semibold' : 'text-blue-900/70 hover:text-slate-800'"
           @click="useCustom = false"
         >
           <UntitledIcon name="layers-three" :size="14" />
@@ -516,7 +516,7 @@ function handleViewAllFiltered() {
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-all"
-          :class="useCustom ? 'bg-white text-brand-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'"
+          :class="useCustom ? 'bg-white text-brand-600 tib-active-elevated font-semibold' : 'text-blue-900/70 hover:text-slate-800'"
           @click="useCustom = true"
         >
           <UntitledIcon name="code-02" :size="14" />

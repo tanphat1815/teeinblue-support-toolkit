@@ -675,16 +675,46 @@ function handleViewAllFiltered() {
             <div class="flex items-center gap-2">
               <input
                 type="checkbox"
-                class="rounded border-slate-300 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                class="rounded border-slate-300 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                 :checked="selectedIds.includes(sn.id)"
                 @change="toggleSnippet(sn.id)"
               />
 
-              <!-- Tiêu đề + description -->
-              <button class="min-w-0 flex-1 text-left" @click="toggleSnippet(sn.id)">
-                <div class="truncate text-xs font-semibold text-slate-800">{{ sn.title }}</div>
-                <div class="tib-muted truncate text-[11px]">{{ sn.description || `${sn.category} · ${sn.targets.length} file` }}</div>
-              </button>
+              <!-- Tiêu đề + Tooltip chi tiết khi hover -->
+              <div class="min-w-0 flex-1 relative group py-0.5">
+                <button
+                  type="button"
+                  class="w-full text-left truncate text-xs font-semibold text-slate-800 hover:text-brand-600 transition-colors"
+                  @click="toggleSnippet(sn.id)"
+                >
+                  {{ sn.title }}
+                </button>
+
+                <!-- Tooltip hover hiển thị Title, Description, Files cần sửa -->
+                <div
+                  class="pointer-events-none absolute left-0 bottom-full mb-1.5 z-30 hidden w-64 rounded-lg border border-slate-700/80 bg-slate-900/95 p-2 text-white shadow-xl backdrop-blur-xs group-hover:block transition-all"
+                >
+                  <div class="font-bold text-slate-100 text-[11.5px] leading-tight">{{ sn.title }}</div>
+                  <div v-if="sn.description" class="mt-1 text-[10.5px] text-slate-300 leading-snug line-clamp-3">
+                    {{ sn.description }}
+                  </div>
+                  <div class="mt-1.5 pt-1.5 border-t border-slate-700/60 text-[10px] space-y-0.5">
+                    <div class="text-slate-400 font-medium">Files cần chỉnh sửa ({{ sn.targets.length }}):</div>
+                    <div class="space-y-0.5 font-mono text-[9.5px]">
+                      <div
+                        v-for="(t, ti) in sn.targets"
+                        :key="ti"
+                        class="flex items-center justify-between text-slate-300 truncate"
+                      >
+                        <span class="truncate">{{ t.filename }}</span>
+                        <span class="text-slate-400 ml-1 shrink-0">({{ modeLabel[t.mode] || t.mode }})</span>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Tam giác chỉ xuống -->
+                  <div class="absolute left-4 top-full -mt-px border-4 border-transparent border-t-slate-900/95"></div>
+                </div>
+              </div>
 
               <!-- Tags bên phải: Theme + Type + Favorite Icon Star -->
               <div class="flex items-center gap-1.5 shrink-0" @click.stop>

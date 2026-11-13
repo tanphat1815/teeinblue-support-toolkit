@@ -580,7 +580,7 @@ function handleViewAllFiltered() {
               v-model="typeFilter"
               class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
             >
-              <option value="All">+ More</option>
+              <option value="All">More</option>
               <option value="css">CSS</option>
               <option value="js">JS</option>
               <option value="liquid">Liquid</option>
@@ -588,7 +588,7 @@ function handleViewAllFiltered() {
               <option value="mixed">Mixed</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="code-02" :size="12" />
+              <UntitledIcon name="plus" :size="12" class="stroke-[2.5]" />
             </div>
             <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
               <UntitledIcon name="chevron-down" :size="10" />
@@ -644,13 +644,17 @@ function handleViewAllFiltered() {
 
           <button
             type="button"
-            class="shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            class="shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold transition-all border"
             :class="activeTabFilter === 'favorites'
-              ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
             @click="activeTabFilter = 'favorites'"
           >
-            <UntitledIcon :name="activeTabFilter === 'favorites' ? 'star-filled' : 'star'" :size="12" class="text-amber-400" />
+            <UntitledIcon
+              :name="activeTabFilter === 'favorites' ? 'star-filled' : 'star'"
+              :size="12"
+              :class="activeTabFilter === 'favorites' ? 'text-white' : 'text-slate-500'"
+            />
             <span>Favorites ({{ filterCounts.fav }})</span>
           </button>
         </div>

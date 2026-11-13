@@ -843,26 +843,42 @@ function handleViewAllFiltered() {
       <p v-if="invalidTarget" class="text-xs text-red-600 font-medium">Filename không hợp lệ hoặc bị chặn: {{ invalidTarget.filename }}</p>
 
       <!-- Ready to inject Hero Banner (Chính xác như thiết kế) -->
-      <div class="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50/90 p-2.5 shadow-xs flex items-center justify-between gap-2">
+      <div
+        class="rounded-xl border p-2.5 shadow-xs flex items-center justify-between gap-2 transition-all"
+        :class="canInject
+          ? 'border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50/90'
+          : 'border-slate-200 bg-slate-50/70'"
+      >
         <div class="flex items-center gap-2 min-w-0">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
-            <UntitledIcon name="check" :size="16" class="stroke-[3]" />
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all"
+            :class="canInject ? 'bg-blue-600' : 'bg-slate-300 text-slate-500'"
+          >
+            <UntitledIcon v-if="canInject" name="check" :size="16" class="stroke-[3]" />
+            <UntitledIcon v-else name="info-circle" :size="16" class="text-white" />
           </div>
           <div class="min-w-0">
-            <div class="font-bold text-slate-900 text-xs">Ready to inject!</div>
-            <div class="text-[11px] text-slate-600 truncate">
-              {{ targets.length ? `${targets.length} files will be applied to your theme.` : 'Chọn snippet để bắt đầu.' }}
+            <div class="font-bold text-xs" :class="canInject ? 'text-slate-900' : 'text-slate-600'">
+              {{ canInject ? 'Ready to inject!' : 'Chưa chọn snippet' }}
+            </div>
+            <div class="text-[11px] text-slate-500 truncate">
+              {{ canInject
+                ? `${targets.length} file sẽ được cập nhật vào theme.`
+                : (!selectedTheme ? 'Vui lòng kết nối theme' : 'Chọn snippet ở Step 2 để tiếp tục.') }}
             </div>
           </div>
         </div>
 
         <button
           type="button"
-          class="tib-btn-primary inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-bold shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
+          class="inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-bold shadow-sm transition-all rounded-lg"
+          :class="canInject
+            ? 'tib-btn-primary shadow-md hover:shadow-lg active:scale-95'
+            : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
           :disabled="!canInject || injecting"
           @click="openConfirm"
         >
-          <UntitledIcon name="zap" :size="14" class="fill-current" />
+          <UntitledIcon name="zap" :size="14" :class="canInject ? 'fill-current' : 'text-slate-400'" />
           <span>{{ injecting ? 'Đang ghi…' : `Inject ${selectedIds.length || targets.length} Snippets →` }}</span>
         </button>
       </div>

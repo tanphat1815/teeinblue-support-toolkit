@@ -499,7 +499,7 @@ function handleViewAllFiltered() {
       </template>
 
       <!-- Sub-tabs chuyển đổi giữa Library và Custom Code -->
-      <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
+      <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium bg-blue-100/70 p-0.5 text-[11px] border border-blue-200/60">
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-all"

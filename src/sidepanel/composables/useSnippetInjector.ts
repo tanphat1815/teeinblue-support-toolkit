@@ -32,6 +32,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
 
   // ---- settings (source URL + marker note, persisted)
   const sourceUrl = ref(DEFAULT_SNIPPETS_URL);
+  const activeSourceUrl = ref(''); // URL thực tế đã bấm Lưu & Tải thành công
   const markerNote = ref('');
   const sourceKind = ref<'github' | 'sheet' | 'custom'>('github');
   const partnerId = ref<PartnerDashboardId>('collab');
@@ -40,7 +41,10 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   async function loadSettings() {
     const s = await chrome.storage.local.get([STORAGE.settings, STORAGE.partnerDashboard, STORAGE.favoriteSnippets]);
     const v = s[STORAGE.settings] as { sourceUrl?: string; markerNote?: string } | undefined;
-    if (v?.sourceUrl !== undefined) sourceUrl.value = v.sourceUrl;
+    if (v?.sourceUrl !== undefined) {
+      sourceUrl.value = v.sourceUrl;
+      activeSourceUrl.value = v.sourceUrl;
+    }
     if (v?.markerNote !== undefined) markerNote.value = v.markerNote;
     const p = s[STORAGE.partnerDashboard] as PartnerDashboardId | undefined;
     if (p && PARTNER_DASHBOARDS.some((d) => d.id === p)) partnerId.value = p;
@@ -79,7 +83,12 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     }
     await chrome.storage.local.set({ [STORAGE.settings]: { sourceUrl: url, markerNote: markerNote.value.trim() } });
     await loadSnippets(true);
-    toast.success('Đã lưu nguồn snippets.');
+    if (!snippetsError.value) {
+      activeSourceUrl.value = url;
+      toast.success('Đã lưu & tải nguồn snippets.');
+    } else {
+      toast.error(`Lỗi tải snippets: ${snippetsError.value}`);
+    }
   }
 
   // ---- snippets
@@ -395,7 +404,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   });
 
   return {
-    toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
+    toast, sourceUrl, activeSourceUrl, markerNote, sourceKind, pickSource, saveSettings,
     snippets, source, snippetsError, loadingSnippets, loadSnippets,
     admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
     reloadAdminTab, reloadingAdminTab,

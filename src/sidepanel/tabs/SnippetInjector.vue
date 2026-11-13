@@ -15,7 +15,7 @@ import codeFileIconUrl from '@/assets/icons/code-file.svg';
 const props = defineProps<{ ctx: TabContext }>();
 const s = useSnippetInjector(props);
 const {
-  toast, sourceUrl, markerNote, sourceKind, pickSource, saveSettings,
+  toast, sourceUrl, activeSourceUrl, markerNote, sourceKind, pickSource, saveSettings,
   snippets, source, snippetsError, loadingSnippets, loadSnippets,
   admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
   reloadAdminTab, reloadingAdminTab,
@@ -52,7 +52,7 @@ const jsonFormatModalOpen = ref(false);
 const isEditingSource = ref(false);
 const historyOpen = ref(false);
 
-const isConfigured = computed(() => !!sourceUrl.value && !snippetsError.value && snippets.value.length > 0);
+const isConfigured = computed(() => !!activeSourceUrl.value && !snippetsError.value && snippets.value.length > 0);
 
 function handleResetAll() {
   resetAll();
@@ -408,12 +408,12 @@ function handleViewAllFiltered() {
         </button>
       </div>
 
-      <!-- Compact Source URL Bar / Input edit với chiều cao cố định h-9 -->
-      <div v-if="!isEditingSource && sourceUrl" class="flex h-9 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-2.5 text-xs">
+      <!-- Source URL Bar: View Mode (khi đã cấu hình xong) -->
+      <div v-if="!isEditingSource && activeSourceUrl" class="flex h-9 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-2.5 text-xs">
         <div class="flex items-center gap-1.5 min-w-0">
           <UntitledIcon name="settings-01" :size="13" class="shrink-0 text-slate-500" />
           <span class="font-medium text-slate-600 shrink-0">Source URL:</span>
-          <span class="truncate font-mono text-[11.5px] text-slate-800" :title="sourceUrl">{{ sourceUrl }}</span>
+          <span class="truncate font-mono text-[11.5px] text-slate-800" :title="activeSourceUrl">{{ activeSourceUrl }}</span>
         </div>
         <button
           type="button"
@@ -425,31 +425,24 @@ function handleViewAllFiltered() {
         </button>
       </div>
 
-      <!-- Ô nhập URL và nút tải (chiều cao h-9 đồng nhất, không bị phình to) -->
-      <div v-else class="flex items-center gap-1.5">
-        <div class="relative min-w-0 flex-1 h-9">
-          <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
-            <UntitledIcon name="link" :size="14" />
-          </span>
-          <input
-            v-model="sourceUrl"
-            class="tib-input !pl-8 !h-9 font-mono text-xs w-full"
-            placeholder="https://github.com/… or raw JSON URL"
-          />
-        </div>
+      <!-- Source URL Bar: Edit/Input Mode (khi chưa cấu hình hoặc người dùng bấm Edit) -->
+      <div v-else class="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white pl-2.5 pr-1.5 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition-all">
+        <UntitledIcon name="settings-01" :size="13" class="shrink-0 text-slate-400" />
+        <span class="font-medium text-slate-500 shrink-0 text-xs">Source URL:</span>
+        <input
+          v-model="sourceUrl"
+          class="h-full flex-1 min-w-0 border-0 bg-transparent p-0 font-mono text-xs text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
+          placeholder="https://raw.githubusercontent.com/… or JSON URL"
+          @keydown.enter="async () => { await saveSettings(); isEditingSource = false; }"
+        />
         <button
-          class="tib-btn-primary inline-flex shrink-0 items-center gap-1 px-2.5 h-9 text-xs font-semibold"
+          type="button"
+          class="inline-flex shrink-0 items-center gap-1 rounded-md bg-brand-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-2xs hover:bg-brand-600 active:scale-95 transition-all disabled:opacity-50"
+          :disabled="loadingSnippets || !sourceUrl.trim()"
           @click="async () => { await saveSettings(); isEditingSource = false; }"
         >
-          <UntitledIcon name="folder-download" :size="14" />
-          <span>Lưu & Tải</span>
-        </button>
-        <button
-          class="tib-btn inline-flex shrink-0 items-center gap-1 px-2.5 h-9 text-xs font-medium text-slate-700"
-          @click="loadSnippets(true)"
-        >
-          <UntitledIcon name="refresh-cw" :size="13" :class="loadingSnippets ? 'animate-spin' : ''" />
-          <span>Tải lại</span>
+          <UntitledIcon name="refresh-cw" :size="11" :class="loadingSnippets ? 'animate-spin' : ''" />
+          <span>{{ loadingSnippets ? 'Đang tải…' : 'Lưu & Tải' }}</span>
         </button>
       </div>
 
@@ -533,32 +526,74 @@ function handleViewAllFiltered() {
 
       <!-- Mode 1: Library Snippets -->
       <div v-if="!useCustom" class="space-y-2 pt-1">
-        <!-- Ô Search snippets -->
-        <div class="relative">
-          <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
-            <UntitledIcon name="search-sm" :size="14" />
-          </span>
-          <input v-model="query" class="tib-input !pl-8" placeholder="Search snippets…" />
-        </div>
+        <!-- Thanh Search & Filters chung một hàng ngang (giống hệt Design) -->
+        <div class="flex items-center gap-1.5">
+          <!-- Ô Search snippets bo tròn -->
+          <div class="relative min-w-0 flex-1 h-8">
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
+              <UntitledIcon name="search-sm" :size="13" />
+            </span>
+            <input
+              v-model="query"
+              class="h-full w-full rounded-lg border border-slate-200 bg-white pl-8 pr-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              placeholder="Search snippets…"
+            />
+          </div>
 
-        <!-- 3 Dropdown filters dạng compact -->
-        <div class="grid grid-cols-3 gap-1.5">
-          <label class="text-[11px] font-medium text-slate-600">Theme
-            <select v-model="themeGroup" class="tib-input mt-0.5 text-xs">
-              <option v-for="g in themeGroups" :key="g" :value="g">{{ g === 'All' ? 'All Themes' : g }}</option>
+          <!-- Filter Theme Dropdown Pill -->
+          <div class="relative shrink-0">
+            <select
+              v-model="themeGroup"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="All">Theme</option>
+              <option v-for="g in themeGroups.filter((x) => x !== 'All')" :key="g" :value="g">{{ g }}</option>
             </select>
-          </label>
-          <label class="text-[11px] font-medium text-slate-600">Category
-            <select v-model="category" class="tib-input mt-0.5 text-xs">
-              <option value="">Tất cả</option>
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="palette" :size="12" />
+            </div>
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
+            </div>
+          </div>
+
+          <!-- Filter Category Dropdown Pill -->
+          <div class="relative shrink-0">
+            <select
+              v-model="category"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="">Category</option>
               <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
             </select>
-          </label>
-          <label class="text-[11px] font-medium text-slate-600">Type
-            <select v-model="typeFilter" class="tib-input mt-0.5 text-xs">
-              <option>All</option><option>css</option><option>js</option><option>liquid</option><option>json</option><option>mixed</option>
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="layers-three" :size="12" />
+            </div>
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
+            </div>
+          </div>
+
+          <!-- Filter Type Dropdown Pill (+ More) -->
+          <div class="relative shrink-0">
+            <select
+              v-model="typeFilter"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="All">+ More</option>
+              <option value="css">CSS</option>
+              <option value="js">JS</option>
+              <option value="liquid">Liquid</option>
+              <option value="json">JSON</option>
+              <option value="mixed">Mixed</option>
             </select>
-          </label>
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="code-02" :size="12" />
+            </div>
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
+            </div>
+          </div>
         </div>
 
         <!-- Horizontal filter chips (All, Dawn, Debut, Turbo, Favorites) -->
@@ -903,22 +938,7 @@ function handleViewAllFiltered() {
       </ul>
     </div>
 
-    <!-- Floating Help Button ở góc dưới phải -->
-    <div class="flex justify-end pt-1 pb-2">
-      <button
-        type="button"
-        class="group inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 active:scale-95 transition-all"
-        title="Tìm hiểu cách Snippet Injector hoạt động"
-        @click="helpModalOpen = true"
-      >
-        <div class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-          <UntitledIcon name="info-circle" :size="11" />
-        </div>
-        <span>Cơ chế hoạt động & Architecture</span>
-      </button>
-    </div>
-
-    <!-- Modal giải thích chi tiết kiến trúc & flow -->
+    <!-- Modal giải thích chi tiết kiến trúc & flow (Mở từ nút Docs ở Bottom Navigation) -->
     <SnippetHelpModal :open="helpModalOpen" @close="helpModalOpen = false" />
 
     <!-- Modal định dạng JSON chuẩn & hướng dẫn code dài -->

@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-13T14:41:57.041Z",
+  "snippets": [
+    {
+      "id": "ui-border-radius-8px",
+      "title": "Bo tròn toàn bộ giao diện Teeinblue (Border Radius 8px)",
+      "category": "Fix CSS",
+      "description": "Áp dụng border-radius 8px cho toàn bộ nút bấm, inputs, selects, clipart, swatch và popup của Teeinblue.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "border-radius",
+        "ui",
+        "css",
+        "style"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Bo tròn 8px giao diện Teeinblue */\n.teeinblue-enabled button.tee-btn,\n.teeinblue-enabled div.tee-radio,\n.teeinblue-enabled .tee-field__select,\n.teeinblue-enabled .tee-form-input,\n.teeinblue-enabled .tee-clipart,\n.teeinblue-enabled .tee-photo-placeholder,\n.teeinblue-enabled .tee-photo-action .tee-btn,\n.teeinblue-enabled .tee__paragraph,\n.teeinblue-enabled .tee-timepicker__input {\n  border-radius: 8px !important;\n}\n\n.teeinblue-enabled .tee-quantity-minus {\n  border-top-left-radius: 8px;\n  border-bottom-left-radius: 8px;\n}\n\n.teeinblue-enabled .tee-quantity-plus {\n  border-top-right-radius: 8px;\n  border-bottom-right-radius: 8px;\n}\n\n.tee-slider .tee-slide,\n.tee-mockup-item .tee-mockup-image,\n.tee-mockup-item .tee-printarea-wrapper--image > img {\n  border-radius: 8px;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-rtl-arabic-hebrew-support",
+      "title": "Hỗ trợ ngôn ngữ RTL (Right-to-Left: Ả Rập, Hebrew)",
+      "category": "Fix CSS",
+      "description": "Căn chỉnh lại layout, dialog cropper và overflow cho các website sử dụng hướng đọc phải sang trái (RTL).",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "rtl",
+        "arabic",
+        "hebrew",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Hỗ trợ hiển thị RTL cho Teeinblue */\n@media only screen and (min-width: 992px) {\n  .tee-dialog-image-cropper.vm--modal {\n    left: -50% !important;\n    transform: translateX(50%) !important;\n  }\n}\n\n@media only screen and (max-width: 990px) {\n  .teeinblue-enabled .product {\n    overflow: hidden;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-classic-cropper-style",
+      "title": "Khôi phục giao diện Image Cropper kiểu cổ điển",
+      "category": "Fix CSS",
+      "description": "Chuyển phong cách khung cắt ảnh (cropper modal) từ dạng modern sang giao diện cổ điển dễ dùng.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "cropper",
+        "modal",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Image Cropper Classic Style */\n.tee-dialog-image-cropper .cropper-view-box {\n  outline: 2px solid #fff !important;\n  outline-color: rgba(255, 255, 255, 0.75) !important;\n}\n\n.tee-dialog-image-cropper .cropper-line {\n  background-color: transparent !important;\n}\n\n.tee-dialog-image-cropper .cropper-point {\n  width: 10px !important;\n  height: 10px !important;\n  background-color: #39f !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-preview-popup-z-index-fix",
+      "title": "Fix Preview Popup bị chìm phía sau Sticky Header",
+      "category": "Fix CSS",
+      "description": "Tăng z-index của container popup preview và dialog để không bao giờ bị menu/header che khuất.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "z-index",
+        "preview-popup",
+        "header-overlap"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Fix preview popup overlap */\n.vm--container.tee-preview-popup,\n.vm--container.tee-dialog-preview {\n  z-index: 99999999 !important;\n}\n\n.teeinblue-enabled .shopify-section-header-sticky {\n  z-index: 100 !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-ios-scrollable-fix",
+      "title": "Fix cuộn trang bị khóa trên trình duyệt iOS",
+      "category": "Fix CSS",
+      "description": "Khắc phục lỗi không cuộn được trang trên iPhone/iPad khi popup hoặc modal Teeinblue đóng lại.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "ios",
+        "safari",
+        "overflow",
+        "scroll"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Fix scrollable in iOS browsers */\nhtml.tee-overflow-hidden,\nbody.tee-overflow-hidden {\n  position: static !important;\n  overflow: auto !important;\n  -webkit-overflow-scrolling: touch;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-loading-placeholder-shimmer",
+      "title": "Hiển thị Loading Placeholder trong khi Teeinblue đang tải",
+      "category": "Fix CSS",
+      "description": "Tạo khung placeholder loading shimmer tạm thời tại vị trí form giúp giảm hiện tượng layout shift.",
+      "type": "mixed",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "loading",
+        "skeleton",
+        "shimmer",
+        "ux"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "<script>\nfunction initTeeinblueLoader() {\n  const observer = new MutationObserver((mutations, obs) => {\n    const target = document.querySelector('.teeinblue-product-loading, #tee-artwork-form');\n    if (target && !document.querySelector('#tib-loading-placeholder')) {\n      const placeholder = document.createElement('div');\n      placeholder.id = 'tib-loading-placeholder';\n      placeholder.innerHTML = '<div class=\"tib-shimmer\">Đang tải tùy chỉnh sản phẩm...</div>';\n      target.parentNode.insertBefore(placeholder, target);\n    }\n    if (document.querySelector('.teeinblue-enabled #tee-artwork-form')) {\n      const ph = document.querySelector('#tib-loading-placeholder');\n      if (ph) ph.remove();\n      obs.disconnect();\n    }\n  });\n  observer.observe(document.body, { childList: true, subtree: true });\n}\ninitTeeinblueLoader();\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Loading shimmer placeholder */\n#tib-loading-placeholder {\n  width: 100%;\n  padding: 24px;\n  background: #f7f7f7;\n  border-radius: 8px;\n  margin-bottom: 16px;\n  text-align: center;\n  color: #666;\n  font-weight: 500;\n  animation: tibPulse 1.5s infinite;\n}\n\n@keyframes tibPulse {\n  0% { opacity: 0.6; }\n  50% { opacity: 1; }\n  100% { opacity: 0.6; }\n}"
+        }
+      ]
+    }
+  ]
+}

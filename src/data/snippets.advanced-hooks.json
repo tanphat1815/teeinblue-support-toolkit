@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-13T14:41:57.042Z",
+  "snippets": [
+    {
+      "id": "hook-fly-to-cart-double-fix",
+      "title": "Fix Fly-to-Cart Animation bị kích hoạt 2 lần",
+      "category": "Theme Integration",
+      "description": "Sử dụng window.teeinblue.beforeAddToCart để chặn animation mặc định của theme và chỉ chạy 1 lần.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "animation",
+        "fly-to-cart",
+        "beforeAddToCart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  window.teeinblue = window.teeinblue || {};\n  window.teeinblue.beforeAddToCart = (input) => {\n    const flyComponent = document.querySelector('add-to-cart-component');\n    if (flyComponent && typeof flyComponent.publicAnimateFlyToCart === 'function') {\n      flyComponent.publicAnimateFlyToCart();\n    }\n    return input;\n  };\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-hide-form-when-empty",
+      "title": "Tự động ẩn Form Teeinblue khi không có input nào",
+      "category": "Theme Integration",
+      "description": "Kiểm tra sau khi inject: nếu #teeFormInputs rỗng hoặc chỉ có input ẩn, tự động ẩn wrapper để tránh chiếm diện tích.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "empty-form",
+        "hide-elements",
+        "ux"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const teeFormInputs = document.getElementById('teeFormInputs');\n  if (teeFormInputs && (teeFormInputs.children.length === 0 || (teeFormInputs.children.length === 1 && teeFormInputs.children[0].classList.contains('sr-only')))) {\n    teeFormInputs.style.display = 'none';\n    const formWrapper = document.getElementById('tee-artwork-form');\n    if (formWrapper && !formWrapper.querySelector('.tee-btn--preview')) {\n      formWrapper.style.display = 'none';\n    }\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-move-dom-element",
+      "title": "Di chuyển Element bên ngoài vào trong Form Teeinblue",
+      "category": "Theme Integration",
+      "description": "Dùng MutationObserver chuyển các khối như Delivery Estimate, Badge hoặc Reviews vào trước/sau #teeFormActions.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "dom-mover",
+        "mutation-observer",
+        "form-layout"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const SOURCE_SELECTOR = 'essential-estimated-delivery-app-embed, .trust-badge-block';\n  const TARGET_SELECTOR = '#teeFormActions';\n\n  const moveElement = () => {\n    const source = document.querySelector(SOURCE_SELECTOR);\n    const target = document.querySelector(TARGET_SELECTOR);\n    if (source && target && !target.contains(source)) {\n      target.parentNode.insertBefore(source, target.nextSibling);\n      return true;\n    }\n    return false;\n  };\n\n  if (!moveElement()) {\n    const observer = new MutationObserver(() => {\n      if (moveElement()) observer.disconnect();\n    });\n    observer.observe(document.body, { childList: true, subtree: true });\n    setTimeout(() => observer.disconnect(), 10000);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-insert-size-chart-button",
+      "title": "Chèn nút Size Chart của Theme vào cạnh Option Teeinblue",
+      "category": "Theme Integration",
+      "description": "Lấy nút Size Chart modal của theme và render vào cạnh nhãn kích cỡ (Size) trong form Teeinblue.",
+      "type": "js",
+      "themes": [
+        "vision",
+        "turbo",
+        "*"
+      ],
+      "tags": [
+        "size-chart",
+        "dom-mover",
+        "variant"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const sizeButton = document.querySelector('.product-popup-modal__button, [data-modal-open*=\"size\"], .size-chart-link');\n  const sizeLabel = Array.from(document.querySelectorAll('.tee-field__label')).find(el => /size|kích thước/i.test(el.textContent));\n  if (sizeButton && sizeLabel && !sizeLabel.querySelector('.tib-cloned-size-chart')) {\n    const clone = sizeButton.cloneNode(true);\n    clone.classList.add('tib-cloned-size-chart');\n    clone.style.marginLeft = '8px';\n    clone.addEventListener('click', (e) => {\n      e.preventDefault();\n      sizeButton.click();\n    });\n    sizeLabel.appendChild(clone);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-sdkv2-variant-sync",
+      "title": "SDK v2 - Đồng bộ Variant Theme & Clone Node",
+      "category": "Theme Integration",
+      "description": "Lắng nghe sự kiện đổi variant trên theme để dispatch teeinblue-event-clone-node và cập nhật lại form.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "sdkv2",
+        "variant-sync",
+        "clone-node"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('click', (event) => {\n  const variantSelector = event.target.closest('[class*=\"variant-selects\"], [class*=\"variant-radios\"], [class*=\"product-form__input\"]');\n  if (variantSelector) {\n    setTimeout(() => {\n      document.dispatchEvent(new CustomEvent('teeinblue-event-clone-node'));\n    }, 1000);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-retry-broken-thumbnail",
+      "title": "Tự động tải lại Thumbnail Teeinblue khi CDN lỗi (Auto Retry)",
+      "category": "Theme Integration",
+      "description": "Bắt sự kiện error của thẻ img từ Teeinblue, tự động gắn timestamp bypass cache để fetch lại tối đa 5 lần.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "retry",
+        "thumbnail",
+        "cdn",
+        "cache"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('error', function (e) {\n  if (e.target.tagName && e.target.tagName.toLowerCase() === 'img' && e.target.src && e.target.src.includes('teeinblue')) {\n    let img = e.target;\n    let retryCount = parseInt(img.dataset.retry) || 0;\n    const maxRetries = 5;\n    if (retryCount < maxRetries) {\n      img.dataset.retry = retryCount + 1;\n      setTimeout(function () {\n        const url = new URL(img.src);\n        url.searchParams.set('_retry', Date.now());\n        img.src = url.toString();\n      }, 1000 * Math.pow(2, retryCount));\n    }\n  }\n}, true);\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-sdkv2-cross-sell-redirect",
+      "title": "SDK v2 - Cross-sell Product Metafield Redirect",
+      "category": "Theme Integration",
+      "description": "Tự động lắng nghe metafield cross_sell_product và dispatch theme:product-added sau khi add to cart.",
+      "type": "liquid",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "cross-sell",
+        "sdkv2",
+        "metafield"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/teeinblue-cross-sell.liquid",
+          "mode": "create",
+          "code": "{% if product and product.metafields.custom.cross_sell_product.value %}\n<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const crossSellHandle = '{{ product.metafields.custom.cross_sell_product.value.handle }}';\n  if (crossSellHandle) {\n    window.location.href = '/products/' + crossSellHandle;\n  }\n});\n</script>\n{% endif %}"
+        },
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "{% render 'teeinblue-cross-sell' %}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,42 +1,1549 @@
 {
   "version": 1,
+  "updatedAt": "2026-11-13T16:17:21.561Z",
   "snippets": [
     {
-      "id": "custom-css-file",
-      "title": "Tạo teeinblue-custom.css và link vào theme",
+      "id": "dawn-hide-theme-info",
+      "title": "Dawn - Ẩn thông tin theme gốc & Link CSS",
       "category": "Fix CSS",
-      "description": "Tạo file CSS riêng cho các fix giao diện Teeinblue, tự link vào layout/theme.liquid.",
+      "description": "Link teeinblue-custom.css, cấu hình window.teeinblue selectors và ẩn giá/variant/quantity mặc định của theme Dawn.",
       "type": "mixed",
-      "themes": ["*"],
-      "tags": ["css", "custom"],
+      "themes": [
+        "dawn"
+      ],
+      "tags": [
+        "dawn",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
       "targets": [
-        { "filename": "assets/teeinblue-custom.css", "mode": "create", "code": "/* Teeinblue custom fixes */\n.teeinblue-wrapper { margin-top: 12px; }" },
-        { "filename": "layout/theme.liquid", "mode": "before-head", "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}" }
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: 'product-form.product-form form.form',\n    gallerySelector: '.grid__item.product__media-wrapper media-gallery',\n    afterPriceBlock: 'inkl. MwSt.',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Dawn: Hide default theme price, variant, quantity and tax */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .price.price--large,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-radios,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .product-form__quantity {\n  display: none !important;\n}\n\n.teeinblue-enabled .product__tax {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-product-price {\n  margin-bottom: 0;\n}"
+        }
       ]
     },
     {
-      "id": "helper-snippet",
-      "title": "Tạo snippets/teeinblue-helper.liquid và render",
-      "category": "Customization ID",
-      "description": "Tạo snippet helper trống và render trước </body>.",
-      "type": "liquid",
-      "themes": ["*"],
-      "tags": ["liquid", "helper"],
-      "targets": [
-        { "filename": "snippets/teeinblue-helper.liquid", "mode": "create", "code": "{% comment %} Teeinblue helper {% endcomment %}\n<script>window.tibHelperLoaded = true;</script>" },
-        { "filename": "layout/theme.liquid", "mode": "before-body", "code": "{% render 'teeinblue-helper' %}" }
-      ]
-    },
-    {
-      "id": "cart-count-refresh",
-      "title": "Cập nhật số lượng giỏ hàng sau add-to-cart (generic)",
+      "id": "dawn-cart-notification-refresh",
+      "title": "Dawn - Cập nhật Cart Notification / Drawer sau khi Add to Cart",
       "category": "Update Cart Count",
-      "description": "Ví dụ generic: gọi /cart.js và cập nhật .cart-count-bubble. Cần chỉnh selector theo theme.",
+      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added và re-render cart-notification hoặc cart-drawer của Dawn.",
       "type": "js",
-      "themes": ["dawn"],
-      "tags": ["cart", "count"],
+      "themes": [
+        "dawn"
+      ],
+      "tags": [
+        "dawn",
+        "cart",
+        "notification",
+        "drawer"
+      ],
       "targets": [
-        { "filename": "layout/theme.liquid", "mode": "before-body", "code": "<script>\nwindow.tibRefreshCartCount = async function () {\n  const cart = await (await fetch('/cart.js')).json();\n  document.querySelectorAll('.cart-count-bubble span[aria-hidden]').forEach(function (el) { el.textContent = cart.item_count; });\n};\n</script>" }
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  if (!cart) return;\n  let sectionsToRender = cart.getSectionsToRender ? cart.getSectionsToRender().map((section) => section.id).join(',') : '';\n  const sections = sectionsToRender ? await fetch(`?sections=${sectionsToRender}`).then(res => res.json()) : null;\n  let cartContent = await fetch(`${window.Shopify?.routes?.root || '/'}cart.js`).then(res => res.json());\n  if (!sections || !cartContent) return;\n  cartContent = {\n    ...cartContent,\n    key: cartContent.items?.at(0)?.key ?? '',\n    sections: sections\n  };\n  cart.renderContents(cartContent);\n  if (cartContent.items.length === 0) {\n    cart.classList.add('is-empty');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "minimog-hide-theme-info",
+      "title": "Minimog - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, link css và ẩn các khối giá, variant picker, sticky atc của theme Minimog.",
+      "type": "mixed",
+      "themes": [
+        "minimog"
+      ],
+      "tags": [
+        "minimog",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.m-main-product--media',\n    formSelector: '.main-product__block-buy_buttons product-form form',\n    cartContainerSelectors: ['.m-cart__items'],\n    cartItemWrapperSelectors: ['.m-cart-item'],\n    cartPreviewButtonWrapperSelectors: ['.m-cart-item__info'],\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Minimog: Hide theme price, variants, sticky ATC */\n.teeinblue-enabled .tee-gallery-wrapper .sf-product-media__desktop,\n.teeinblue-enabled .tee-gallery-wrapper .sf-product-media__mobile,\n.teeinblue-enabled .prod__sticky-atc,\n.teeinblue-enabled .main-product__block-variant_picker,\n.teeinblue-enabled .main-product__block-price,\n.teeinblue-enabled .m-sticky-addtocart {\n  display: none !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-product-price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-variant-picker,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-quantity-input,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-product-buy-button,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-dynamic-buy-buttons {\n  display: none !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .main-product__block-price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .main-product__block-variant_picker,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .m-product-form--wrapper,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .main-product__block-inventory_status {\n  display: none !important;\n}\n\n.vm--block-scroll #main-cart-footer,\n.vm--block-scroll .section-header,\n.vm--block-scroll .newsletter {\n  position: relative;\n  z-index: -1;\n}"
+        }
+      ]
+    },
+    {
+      "id": "minimog-cart-drawer-refresh",
+      "title": "Minimog - Render Cart Drawer sau khi Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Cập nhật cart drawer và cart icon bubble của Minimog sau khi add to cart thành công.",
+      "type": "js",
+      "themes": [
+        "minimog"
+      ],
+      "tags": [
+        "minimog",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const drawer = document.querySelector('m-cart-drawer');\n  if (drawer) {\n    fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n      .then(res => res.json())\n      .then(res => drawer.renderContents({ sections: res }));\n    if (drawer.classList.contains('is-empty')) drawer.classList.remove('is-empty');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "impact-theme-integration",
+      "title": "Impact - Cấu hình selectors & Open Cart Drawer",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallerySelector, buy-buttons form và dispatch event cart:refresh để mở cart-drawer theme Impact.",
+      "type": "mixed",
+      "themes": [
+        "impact"
+      ],
+      "tags": [
+        "impact",
+        "cart",
+        "drawer",
+        "selector"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product .product-gallery',\n    formSelector: '.product .product-info__buy-buttons form',\n    cartContainerSelectors: ['.order-summary__body'],\n    onItemAdded: function(item) {,\n  };\n</script>\ndocument.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n    const cartDrawer = document.querySelector('cart-drawer');\n    if (cartDrawer && typeof cartDrawer.show === 'function') {\n      cartDrawer.show();\n    }\n  };"
+        }
+      ]
+    },
+    {
+      "id": "impact-campaign-by-spf",
+      "title": "Impact - Campaign by Shopify Product (SPF)",
+      "category": "Theme Integration",
+      "description": "Embed form trước quantity-selector và ẩn description/variants/price/vendor gốc trên theme Impact.",
+      "type": "mixed",
+      "themes": [
+        "impact"
+      ],
+      "tags": [
+        "impact",
+        "campaign-spf",
+        "css",
+        "selector"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product .product-gallery',\n    formSelector: '.product .product-info__buy-buttons form',\n    addToCartWrapperSelector: '.product-info__buy-buttons form',\n    atcSubmitSelector: '.product-info__buy-buttons form buy-buttons button',\n    cartContainerSelectors: ['.order-summary__body'],\n    formCssSelector: '.product-info .product-info__block-item[data-block-type=\"quantity-selector\"]',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Impact Campaign SPF: Hide product info elements */\n.teeinblue-enabled .product-info__description,\n.teeinblue-enabled .product-info__variant-picker,\n.teeinblue-enabled .product-info__quantity-selector,\n.teeinblue-enabled .product-info__price,\n.teeinblue-enabled .product-info__vendor {\n  display: none !important;\n}\n\n.teeinblue-enabled div#tee-artwork-form {\n  background: transparent;\n  padding: 0;\n}"
+        }
+      ]
+    },
+    {
+      "id": "impact-cart-count-refresh",
+      "title": "Impact - Cập nhật Cart Count header sau khi Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Cập nhật số lượng giỏ hàng tại .header__cart-count cart-count sau khi add to cart.",
+      "type": "js",
+      "themes": [
+        "impact"
+      ],
+      "tags": [
+        "impact",
+        "cart",
+        "count"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script type=\"text/javascript\">\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  var request = new XMLHttpRequest();\n  request.open('GET', '/cart.js', true);\n  request.onload = function() {\n    if (this.status >= 200 && this.status < 400) {\n      var data = JSON.parse(this.response);\n      var itemCount = data.item_count;\n      var cartCount = document.querySelectorAll('.header__cart-count cart-count');\n      if (cartCount.length) {\n        cartCount.forEach(function (cart) {\n          cart.style.opacity = 1;\n          cart.innerText = itemCount;\n        });\n      }\n    }\n  };\n  request.send();\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "ella-theme-integration",
+      "title": "Ella - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallery, form, preview cart và CSS ẩn price, quantity, variants, countdown của theme Ella.",
+      "type": "mixed",
+      "themes": [
+        "ella"
+      ],
+      "tags": [
+        "ella",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product-details .productView-images-wrapper',\n    formSelector: '.product-details product-form form',\n    atcSubmitSelector: '.product-form__buttons button.product-form__submit',\n    cartContainerSelectors: ['.previewCartList', '.cart-list'],\n    cartItemWrapperSelectors: ['.previewCartList .previewCartItem', '.cart-list .cart-item'],\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Ella: Fix swatch, quantity and hide product info */\n.teeinblue-enabled .tee-swatch--color:empty {\n  display: block;\n}\n\n.teeinblue-enabled .tee-quantity-group input[name=\"quantity\"] {\n  display: block !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem .productView-price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem:has(> .productView-price),\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem:has(> .productView-countDown-wrapper:empty),\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem .quantity_selector,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem:has(> .quantity_selector),\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem .productView-subtotal,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-moreItem .productView-variants,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-product .productView-price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .productView-product .productView-options,\n.halo-sidebar-wrapper .tee-preview-button__wrapper,\n.teeinblue-enabled .card-product .button-ATC,\n.teeinblue-enabled .card-product .card-quickview,\n.previewCartItem-edit,\n.cart-item-edit {\n  display: none !important;\n}\n\n@media (min-width: 1025px) {\n  .teeinblue-enabled .product-card-layout-01 .card.card-media.has-compare:after,\n  .teeinblue-enabled .product-card-layout-05 .card.card-media.has-compare:after {\n    height: 50px;\n  }\n}\n\n.teeinblue-enabled .tee-switch__input {\n  clip: unset;\n}\n\n.teeinblue-enabled input[type=\"checkbox\"],\n.teeinblue-enabled input[type=\"radio\"] {\n  clip: unset;\n}\n\n.tee-cart-thumbnail.loaded {\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100% !important;\n  height: 100% !important;\n  object-fit: var(--product-cart-image-fit);\n  object-position: center;\n}\n\n.tee-preview-button__text,\n.tee-preview-button__wrapper .tee-dialog-close span {\n  font-size: initial;\n}"
+        }
+      ]
+    },
+    {
+      "id": "shrine-hide-theme-info",
+      "title": "Shrine - Cấu hình selectors & Ẩn elements theme",
+      "category": "Fix CSS",
+      "description": "Cấu hình gallery & form, ẩn price, variant-selects, quantity, sticky-atc của theme Shrine.",
+      "type": "mixed",
+      "themes": [
+        "shrine"
+      ],
+      "tags": [
+        "shrine",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.grid__item media-gallery',\n    formSelector: 'product-info product-form form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Shrine: Hide price, variants, quantity and sticky atc */\n.teeinblue-enabled product-info .product-page-price,\n.teeinblue-enabled product-info variant-selects,\n.teeinblue-enabled product-info .product-form__quantity,\n.teeinblue-enabled sticky-atc {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "pipeline-hide-theme-info",
+      "title": "Pipeline - Ẩn thông tin theme gốc",
+      "category": "Fix CSS",
+      "description": "Ẩn variants, quantity, price và remaining stock block trên theme Pipeline.",
+      "type": "css",
+      "themes": [
+        "pipeline"
+      ],
+      "tags": [
+        "pipeline",
+        "css",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Pipeline: Hide product blocks */\n.teeinblue-enabled .product__block__variants,\n.teeinblue-enabled .product__block__quantity,\n.teeinblue-enabled .product__block__price,\n.teeinblue-enabled .product__block__remaining {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "debutify-theme-integration",
+      "title": "Debutify - Cấu hình selectors & Fix CSS",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, ẩn sticky atc, variant radios, price; style nút ATC và thumbnail giỏ hàng theme Debutify.",
+      "type": "mixed",
+      "themes": [
+        "debutify"
+      ],
+      "tags": [
+        "debutify",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product__media-wrapper so-media-gallery',\n    formSelector: 'form.so-product-form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Debutify: Hide sticky add to cart & theme form elements */\n.teeinblue-enabled .dbtfy-sticky_addtocart,\n.teeinblue-enabled so-variant-radios,\n.teeinblue-enabled .price.price--large,\n.teeinblue-enabled .product-form__quantity {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-btn--atc {\n  background-color: var(--tee-primary-color) !important;\n  color: #fff;\n}\n\n.teeinblue-enabled .tee-field__input.tee__input--text {\n  padding: 7px 15px 7px 15px;\n}\n\n.teeinblue-enabled #tee-gallery {\n  height: auto !important;\n}\n\n.tee-cart-thumbnail.loaded {\n  position: absolute;\n  top: 0;\n}"
+        }
+      ]
+    },
+    {
+      "id": "impulse-theme-integration",
+      "title": "Impulse - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallerySelector & formSelector, ẩn variants/form và fix thumbnail trong cart page theme Impulse.",
+      "type": "mixed",
+      "themes": [
+        "impulse"
+      ],
+      "tags": [
+        "impulse",
+        "css",
+        "selector",
+        "hide-elements",
+        "cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.grid__item.product-single__sticky .product__photos',\n    formSelector: '.product-block[data-dynamic-variants-enabled]',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Impulse: Hide default product blocks and fix cart thumbnails */\n.teeinblue-enabled .product-block:has(> .product-single__form) {\n  display: none !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-block[data-dynamic-variants-enabled],\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product__quantity {\n  display: none !important;\n}\n\n.tee-cart-thumbnail.loaded img {\n  position: unset;\n}\n\n.cart__page .tee-cart-thumbnail.loaded {\n  justify-content: center;\n}\n\n.cart__page .tee-cart-thumbnail.loaded img {\n  max-height: 100px;\n}"
+        }
+      ]
+    },
+    {
+      "id": "yuva-theme-integration",
+      "title": "Yuva - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallery slider & formSelector, ẩn quantity, pricebox, option selector theme Yuva.",
+      "type": "mixed",
+      "themes": [
+        "yuva"
+      ],
+      "tags": [
+        "yuva",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.yv-product-slider-wrapper',\n    formSelector: 'form.product-form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Yuva: Hide quantity, pricebox, option selector */\n.teeinblue-enabled .yv-product-quantity,\n.teeinblue-enabled .yv-pricebox-outer,\n.teeinblue-enabled .product-option-selector {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "broadcast-theme-integration",
+      "title": "Broadcast - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, sticky gallery và ẩn thumbs, price, form holder theme Broadcast.",
+      "type": "mixed",
+      "themes": [
+        "broadcast"
+      ],
+      "tags": [
+        "broadcast",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product__page .product__images .product__slides',\n    formSelector: '.product__page form.product-form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Broadcast: Hide thumbs, price, form holder & sticky gallery */\n.teeinblue-enabled .product__thumbs,\n.teeinblue-enabled .product__content .product__price__wrap,\n.teeinblue-enabled .product__content .product__form__holder {\n  display: none !important;\n}\n\n.teeinblue-enabled #tee-gallery {\n  position: sticky;\n  top: 10px;\n}"
+        }
+      ]
+    },
+    {
+      "id": "broadcast-cart-count-refresh",
+      "title": "Broadcast - Cập nhật số lượng giỏ hàng sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Dispatch theme:cart:change với cartCount sau khi thêm vào giỏ theme Broadcast.",
+      "type": "js",
+      "themes": [
+        "broadcast"
+      ],
+      "tags": [
+        "broadcast",
+        "cart",
+        "count"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  var request = new XMLHttpRequest();\n  request.open('GET', '/cart.js', true);\n  request.onload = function () {\n    if (this.status >= 200 && this.status < 400) {\n      var data = JSON.parse(this.response);\n      var itemCount = data.item_count;\n      document.dispatchEvent(\n        new CustomEvent('theme:cart:change', {\n          bubbles: true,\n          detail: { cartCount: itemCount }\n        })\n      );\n    }\n  };\n  request.send();\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "prestige-theme-integration",
+      "title": "Prestige - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallery, formCssSelector, cart drawer selectors và ẩn block price/variants của theme Prestige.",
+      "type": "mixed",
+      "themes": [
+        "prestige"
+      ],
+      "tags": [
+        "prestige",
+        "css",
+        "selector",
+        "hide-elements",
+        "cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: 'product-gallery .product-gallery__image-list',\n    cartContainerSelectors: ['.cart-drawer__items'],\n    cartItemWrapperSelectors: ['.cart-drawer__items .line-item'],\n    formSelector: '[data-block-id=\"buy_buttons\"] product-form form',\n    addToCartWrapperSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons',\n    atcSubmitSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons button[type=\"submit\"]',\n    formCssSelector: '[data-block-id=\"buy_buttons\"] product-form form .v-stack.gap-4',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    onItemAdded: function(item) {,\n  };\n</script>\ndocument.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n    const cartDrawer = document.querySelector('cart-drawer');\n    if (cartDrawer && typeof cartDrawer.show === 'function') {\n      cartDrawer.show();\n    }\n  };"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Prestige: Hide price, variant picker, quick add button */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) [data-block-type=\"price\"],\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) [data-block-type=\"variant-picker\"],\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) [data-block-type=\"quantity-selector\"],\n.teeinblue-enabled .product-card__quick-add-button,\n.teeinblue-enabled product-sticky-bar {\n  display: none !important;\n}\n\n.vm--container.tee-preview-popup {\n  z-index: 9999999;\n}\n\n.tee-cart-thumbnail img {\n  max-width: var(--line-item-media-width) !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "shineon-hide-theme-info",
+      "title": "Shineon - Cấu hình selectors & Ẩn elements theme",
+      "category": "Fix CSS",
+      "description": "Cấu hình gallerySelector & formSelector, ẩn price, variant-radios, quantity theme Shineon.",
+      "type": "mixed",
+      "themes": [
+        "shineon"
+      ],
+      "tags": [
+        "shineon",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.grid__item.product__media-wrapper media-gallery',\n    formSelector: 'product-form.product-form form.form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Shineon: Hide variant radios, price, quantity */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-radios,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .price.price--large,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .product-form__quantity {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "focal-theme-integration",
+      "title": "Focal - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình formEmbedMethod trước quantity, ẩn price list, variant, inventory và trigger mở drawer mini-cart theme Focal.",
+      "type": "mixed",
+      "themes": [
+        "focal"
+      ],
+      "tags": [
+        "focal",
+        "css",
+        "selector",
+        "cart",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n{{ 'teeinblue-custom.js' | asset_url | script_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: '.product-form__buy-buttons form',\n    formCssSelector: '.product-form .product-form__quantity',\n    atcSubmitSelector: '.product-form__buy-buttons #AddToCart',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    addToCartWrapperSelector: '.product-form__buy-buttons form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Focal: Hide price list, product variants, inventory */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-meta__price-list-container,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-variants,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-form__quantity,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-inventory,\n.teeinblue-enabled .product-sticky-form,\n.teeinblue-enabled .teeinblue-has-description .product-form__description {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-description p {\n  line-height: inherit;\n}"
+        },
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  const routes = window.themeVariables?.routes || window.Shopify?.routes || {};\n  const cartUrl = routes.cartUrl || '/cart';\n  fetch(`${cartUrl}.js`)\n    .then(res => res.json())\n    .then(cartData => {\n      fetch(window.location.pathname + '?sections=mini-cart')\n        .then(res => res.json())\n        .then(cartContent => {\n          document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', {\n            detail: {\n              cart: { ...cartContent, ...cartData },\n              openMiniCart: 'drawer'\n            }\n          }));\n        });\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "craft-hide-theme-info",
+      "title": "Craft - Cấu hình selectors & Ẩn elements theme",
+      "category": "Fix CSS",
+      "description": "Cấu hình gallerySelector & formSelector, ẩn price, variant-selects, quantity, sticky-atc theme Craft.",
+      "type": "mixed",
+      "themes": [
+        "craft"
+      ],
+      "tags": [
+        "craft",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.grid__item media-gallery',\n    formSelector: 'product-form form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Craft: Hide price, variants, quantity and fix sticky header z-index */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .price.price--large,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-selects,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .product-form__quantity,\n.teeinblue-enabled sticky-atc {\n  display: none !important;\n}\n\n.vm--block-scroll .shopify-section-header-sticky {\n  z-index: -1;\n}\n\n.vm--block-scroll #main-cart-footer {\n  position: relative;\n  z-index: -1;\n}"
+        }
+      ]
+    },
+    {
+      "id": "symmetry-theme-integration",
+      "title": "Symmetry - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors gallery và buy-buttons-row, ẩn option-selectors trên theme Symmetry.",
+      "type": "mixed",
+      "themes": [
+        "symmetry"
+      ],
+      "tags": [
+        "symmetry",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product-detail .gallery',\n    formSelector: '.buy-buttons-row form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Symmetry: Hide option selectors */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .option-selectors {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "vision-theme-integration",
+      "title": "Vision - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallery, cartPreviewButton và CSS ẩn price container, variant-selects, quantity trên theme Vision.",
+      "type": "mixed",
+      "themes": [
+        "vision"
+      ],
+      "tags": [
+        "vision",
+        "css",
+        "selector",
+        "cart",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product-gallery-sticky .product-image-container',\n    formSelector: 'product-form form',\n    cartContainerSelectors: ['.cart-items'],\n    cartItemWrapperSelectors: ['.cart-item'],\n    cartPreviewButtonWrapperSelectors: ['.cart-item .cart-info'],\n    addCartPreviewButton: true,\n    cartPreviewButtonText: 'Lieblingsbild',\n    cartPreviewCheckoutLabel: 'Process to Checkout',\n    cartPreviewShowCheckout: false,\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Vision: Hide price container, variant selects, quantity */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-information .product-price-container,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-information variant-selects,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-information .quantity__label,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-information quantity-selector {\n  display: none !important;\n}\n\n.tee-cart-thumbnail img {\n  max-width: 75px;\n}\n\n@media only screen and (min-width: 768px) {\n  .tee-cart-thumbnail img {\n    max-width: 96px;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "enterprise-theme-integration",
+      "title": "Enterprise - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, ẩn product-options, backorder và trigger dispatch cart-drawer theme Enterprise.",
+      "type": "mixed",
+      "themes": [
+        "enterprise"
+      ],
+      "tags": [
+        "enterprise",
+        "css",
+        "selector",
+        "cart",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n{{ 'teeinblue-custom.js' | asset_url | script_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: 'product-form form',\n    gallerySelector: '.product-media media-gallery',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Enterprise: Hide product options & backorder elements */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-options {\n  display: none !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-backorder + .mt-8.mb-8 {\n  display: none;\n}\n\ncart-drawer .tee-preview-button__wrapper {\n  display: none !important;\n}"
+        },
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  document.dispatchEvent(new Event('dispatch:cart-drawer:refresh'));\n  setTimeout(() => {\n    document.dispatchEvent(new Event('dispatch:cart-drawer:open'));\n  }, 1000);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "kalles-theme-integration",
+      "title": "Kalles - Cấu hình gallery & cart preview selectors",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallerySelector và cartPreviewButtonWrapperSelectors cho theme Kalles (The4).",
+      "type": "js",
+      "themes": [
+        "kalles"
+      ],
+      "tags": [
+        "kalles",
+        "the4",
+        "selector",
+        "cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.t4s-main-area .t4s-product__media-wrapper',\n    cartContainerSelectors: ['.t4s-cartPage__items'],\n    cartItemWrapperSelectors: ['.t4s-page_cart__item'],\n    cartPreviewButtonWrapperSelectors: ['.t4s-page_cart__item .t4s-page_cart__info'],\n  };\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "showtime-theme-integration",
+      "title": "ShowTime - Cấu hình selectors & Fix CSS",
+      "category": "Theme Integration",
+      "description": "Cấu hình tib-custom-form, formEmbedMethod trước product-variant-listener và CSS thumbnail giỏ hàng theme ShowTime.",
+      "type": "mixed",
+      "themes": [
+        "showtime"
+      ],
+      "tags": [
+        "showtime",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.#product-media',\n    formSelector: '[tib-custom-form] form',\n    addToCartWrapperSelector: '#b-buttons',\n    formCssSelector: '[tib-custom-form] form product-variant-listener',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* ShowTime: Fix thumbnail, dynamic checkout and buttons */\n.tee-cart-thumbnail.loaded ~ div,\n.teeinblue-enabled product-dynamic-checkout {\n  display: none !important;\n}\n\n.teeinblue-enabled.teeinblue-platform-product-enabled button[data-to-cart] {\n  transition: none !important;\n}\n\n.teeinblue-enabled button[data-to-cart][disabled=\"true\"] buy-with-counter {\n  opacity: 0 !important;\n  visibility: hidden !important;\n}\n\n.teeinblue-enabled button[data-to-cart][disabled=\"true\"] .#spinner {\n  opacity: 1 !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "leart-theme-integration",
+      "title": "LeArt - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, link css/js và ẩn variations, checkout button, short-desc, inventory theme LeArt.",
+      "type": "mixed",
+      "themes": [
+        "leart"
+      ],
+      "tags": [
+        "leart",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.js' | asset_url | script_tag }}\n{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: '.shop-product form .product-buttons',\n    cartContainerSelectors: ['.minicart-product-list'],\n    cartItemWrapperSelectors: ['.minicart-product-list li'],\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* LeArt: Hide theme product options, price, short description, checkout button */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .shop-product .product-variations,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .shop-product .dynmiac_checkout--button,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .shop-product .product-cart-action,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .shop-product__short-desc,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-variant-inventory,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product_additional_information,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .visitor-counter-area,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .custom-payment-options,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .estimated-delivery-area,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-meta .quick-view-other-info,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product-ratings {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "stiletto-theme-integration",
+      "title": "Stiletto - Cấu hình selectors & Fix CSS",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallerySelector, ẩn shopify payment button và responsive gallery theme Stiletto (v3.2.5).",
+      "type": "mixed",
+      "themes": [
+        "stiletto"
+      ],
+      "tags": [
+        "stiletto",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product .product__primary-left',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Stiletto: Hide payment button & fix responsive gallery */\n.teeinblue-enabled .shopify-payment-button {\n  display: none !important;\n}\n\n@media only screen and (min-width: 960px) {\n  .teeinblue-enabled .product__primary-left #tee-gallery ~ .left-side-blocks.for-desktop {\n    display: block !important;\n  }\n}\n\n@media only screen and (max-width: 959px) {\n  #tee-gallery {\n    height: auto !important;\n  }\n}\n\n.quick-cart__item-image .quick-cart__item-link,\n.quick-cart__item-image .image,\n.quick-cart__item-image .tee-cart-thumbnail {\n  height: 100%;\n}"
+        }
+      ]
+    },
+    {
+      "id": "concept-campaign-by-spf",
+      "title": "Concept - Campaign by Shopify Product",
+      "category": "Theme Integration",
+      "description": "Cấu hình embed form sau variant-selects/radios và điều chỉnh gallery single-column theme Concept.",
+      "type": "mixed",
+      "themes": [
+        "concept"
+      ],
+      "tags": [
+        "concept",
+        "campaign-spf",
+        "css",
+        "selector"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product media-gallery',\n    formSelector: '.product-form-wrapper form',\n    formCssSelector: '.product product-info variant-selects, .product product-info variant-radios',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'after',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Concept (Campaign SPF): Single column gallery */\n.teeinblue-enabled .product.tee-gallery-wrapper media-gallery {\n  grid-template-columns: 1fr;\n}\n\n.teeinblue-enabled .tee-switch input:after {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "concept-campaign-by-pb",
+      "title": "Concept - Campaign by Product Base",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallerySelector, ẩn variants, text rte, vendor và giữ sticky gallery cho theme Concept.",
+      "type": "mixed",
+      "themes": [
+        "concept"
+      ],
+      "tags": [
+        "concept",
+        "campaign-pb",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product media-gallery',\n    formSelector: '.product-form-wrapper form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Concept (Campaign PB): Hide variants, text and loading pseudo-elements */\n.teeinblue-enabled .tee-switch input:after,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) variant-selects,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) variant-radios,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product__text.rte,\n.teeinblue-enabled .product__vendor,\n.horizontal-product__media .media.loading:has(> .tee-cart-thumbnail.loaded):before,\n.horizontal-product__media .media.loading:has(> .tee-cart-thumbnail.loaded):after {\n  display: none !important;\n}\n\n.teeinblue-enabled cart-drawer cart-items[data-price] {\n  display: flex !important;\n}\n\n@media only screen and (min-width: 1024px) {\n  .teeinblue-enabled media-gallery {\n    position: sticky;\n    top: 10px;\n  }\n  .teeinblue-enabled #tee-gallery {\n    height: auto !important;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "sleek-theme-integration",
+      "title": "Sleek - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallery/form và ẩn variant-picker, price, sticky-atc-bar theme Sleek.",
+      "type": "mixed",
+      "themes": [
+        "sleek"
+      ],
+      "tags": [
+        "sleek",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.product__media-wrapper media-gallery',\n    formSelector: '.product-form form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Sleek: Cart drawer price & hide product blocks */\n.teeinblue-enabled cart-drawer [data-price] {\n  display: flex !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product__block--variant_picker,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .product__block--price,\n.teeinblue-enabled #shopify-section-sticky-atc-bar {\n  display: none !important;\n}\n\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-product-price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-variant-picker,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-quantity-input,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-product-buy-button,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-dynamic-buy-buttons {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "zest-theme-integration",
+      "title": "Zest - Cấu hình selectors & Ẩn elements theme",
+      "category": "Theme Integration",
+      "description": "Cấu hình gallerySelector & formSelector, ẩn price, variant_picker, quantity_selector theme Zest.",
+      "type": "mixed",
+      "themes": [
+        "zest"
+      ],
+      "tags": [
+        "zest",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.f-product__media-wrapper media-gallery',\n    formSelector: 'product-form form',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Zest: Hide product blocks */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .f-product-single__block--price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .f-product-single__block--variant_picker,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .f-product-single__block--quantity_selector,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-product-price,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-variant-picker,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-quantity-input,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-product-buy-button,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) .x-dynamic-buy-buttons {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "wonder-theme-integration",
+      "title": "Wonder - Cấu hình selectors & Fix CSS",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, formEmbedType 'before' và style sticky gallery, dropdown z-index theme Wonder.",
+      "type": "mixed",
+      "themes": [
+        "wonder"
+      ],
+      "tags": [
+        "wonder",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '.wt-product gallery-section',\n    formSelector: 'product-form form',\n    formCssSelector: 'product-form form .wt-product__add-to-cart_form--wrapper',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Wonder: Sticky gallery & z-index fixes */\n@media only screen and (min-width: 900px) {\n  .teeinblue-enabled gallery-section {\n    position: sticky;\n    top: 10px;\n  }\n}\n\n@media only screen and (max-width: 767px) {\n  .tee-form-wrapper {\n    min-width: unset !important;\n  }\n}\n\n.teeinblue-enabled .wt-product__add-to-cart_form {\n  position: relative;\n  z-index: 10;\n}\n\n#tee-artwork-form {\n  z-index: 10;\n}\n\n.teeinblue-enabled .tee-custom-select__list {\n  z-index: 999 !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "xclusive-theme-integration",
+      "title": "Xclusive - Cấu hình selectors & Fix CSS",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, cart container, customization images và CSS gallery buttons, cart thumbnail theme Xclusive.",
+      "type": "mixed",
+      "themes": [
+        "xclusive"
+      ],
+      "tags": [
+        "xclusive",
+        "css",
+        "selector",
+        "cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: '#main-product .l4pr',\n    formSelector: '#main-product .f8pr form.f8pr-buy-button',\n    formCssSelector: '#main-product .f8pr form.f8pr-buy-button',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    addToCartWrapperSelector: '#main-product .f8pr form.f8pr-buy-button .submit',\n    atcSubmitSelector: '#main-product .f8pr form.f8pr-buy-button .submit [type=\"submit\"]',\n    cartContainerSelectors: ['aside#cart ul.l4ca'],\n    cartItemWrapperSelectors: ['aside#cart ul.l4ca li'],\n    customizationImageSelectors: ['aside#cart ul.l4ca li picture img'],\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Xclusive: Gallery controls, loader, buttons and cart thumbnail */\n.teeinblue-enabled #tee-gallery {\n  height: auto !important;\n}\n\n.teeinblue-enabled #root[style*=\"--ratio\"] .tee-gallery-content .tee-image--loader {\n  width: 20px !important;\n  height: 20px !important;\n  top: 50% !important;\n  left: 50% !important;\n  bottom: unset !important;\n}\n\n.teeinblue-enabled #root[style*=\"--ratio\"] .tee-gallery-content button:after,\n.teeinblue-enabled #root[style*=\"--ratio\"] .tee-gallery-content button:before {\n  display: none;\n}\n\n.teeinblue-enabled #root[style*=\"--ratio\"] .tee-gallery-content .tee-thumbnails__button {\n  background-color: #fff;\n}\n\n.teeinblue-enabled #root[style*=\"--ratio\"] .tee-gallery-content .tee-slider__button svg,\n.teeinblue-enabled #root[style*=\"--ratio\"] .tee-gallery-content .tee-thumbnails__button svg {\n  position: relative;\n  width: 16px !important;\n  height: 16px !important;\n}\n\n.teeinblue-enabled #tee-artwork-form {\n  z-index: 99;\n  position: relative;\n}\n\n.teeinblue-enabled .tee-colorpicker .vc-input__input {\n  background: none;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action {\n  display: flex;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action button:before,\n.teeinblue-enabled .tee-block .tee-form-action button:after {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action button.tee-btn--preview {\n  background: var(--tee-button-preview-bg-color, #fff) !important;\n  color: var(--tee-preview-button-text-color) !important;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action button.tee-btn--preview:hover,\n.teeinblue-enabled .tee-block .tee-form-action button.tee-btn--preview:focus {\n  background-color: var(--tee-primary-lighten-color) !important;\n  color: var(--tee-preview-button-text-hover-color) !important;\n}\n\n.teeinblue-item.teeinblue-item--product {\n  z-index: 99999;\n}\n\naside#cart .tee-cart-thumbnail {\n  width: 100%;\n  height: 100%;\n  position: absolute;\n  top: 0;\n}"
+        }
+      ]
+    },
+    {
+      "id": "xtra-theme-integration",
+      "title": "Xtra - Cấu hình selectors, Clone Node & Fix CSS",
+      "category": "Theme Integration",
+      "description": "Cấu hình selectors, lắng nghe click đổi variant để dispatch clone-node và fix giao diện nút preview theme Xtra.",
+      "type": "mixed",
+      "themes": [
+        "xtra"
+      ],
+      "tags": [
+        "xtra",
+        "css",
+        "selector",
+        "clone-node",
+        "variant"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script>\n  teeinblue = {\n    gallerySelector: '#main-product .l4pr',\n    formSelector: '#main-product .f8pr form.f8pr-buy-button',\n    formCssSelector: '#main-product .f8pr form.f8pr-buy-button',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    addToCartWrapperSelector: '#main-product .f8pr form.f8pr-buy-button .submit',\n    atcSubmitSelector: '#main-product .f8pr form.f8pr-buy-button .submit [type=\"submit\"]',\n  };\n</script>\ndocument.addEventListener('click', (event) => {\n  const variantSelector = event.target.closest('[class*=\"variant-selection\"]');\n  if (variantSelector) {\n    setTimeout(() => {\n      document.dispatchEvent(new CustomEvent('teeinblue-event-clone-node'));\n    }, 1500);\n  }\n});"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Xtra: Hide shopify payment button and customize controls */\n.teeinblue-enabled .shopify-payment-button {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-gallery-content button:after,\n.teeinblue-enabled .tee-gallery-content button:before {\n  display: none;\n}\n\n.teeinblue-enabled .tee-gallery-content .tee-slider__button svg,\n.teeinblue-enabled .tee-gallery-content .tee-thumbnails__button svg {\n  position: relative;\n  width: 16px !important;\n  height: 16px !important;\n}\n\n.teeinblue-item.teeinblue-item--product {\n  z-index: 99999;\n}\n\naside#cart .tee-cart-thumbnail {\n  width: 100%;\n  height: 100%;\n  position: absolute;\n  top: 0;\n}\n\n.teeinblue-enabled .tee-gallery-content .tee-image--loader {\n  width: 20px !important;\n  height: 20px !important;\n  top: 50% !important;\n  left: 50% !important;\n  bottom: unset !important;\n}\n\n.teeinblue-enabled .tee-colorpicker .vc-input__input {\n  background: none;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action {\n  display: flex;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action button:before,\n.teeinblue-enabled .tee-block .tee-form-action button:after {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action button.tee-btn--preview {\n  background: var(--tee-button-preview-bg-color, #fff) !important;\n  color: var(--tee-preview-button-text-color) !important;\n}\n\n.teeinblue-enabled .tee-block .tee-form-action button.tee-btn--preview:hover,\n.teeinblue-enabled .tee-block .tee-form-action button.tee-btn--preview:focus {\n  background-color: var(--tee-primary-lighten-color) !important;\n  color: var(--tee-preview-button-text-hover-color) !important;\n}\n\n.tee-dcontent-footer .tee-btn {\n  min-width: auto;\n}\n\n.tee-dcontent-footer .tee-btn:not(.tee-btn--primary) {\n  color: inherit;\n}"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-avone",
+      "title": "Avone - Re-render & mở Cart Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Lắng nghe teeinblue-event-after-cart-added, gọi /cart/update.js và renderContents của cart-drawer trên theme Avone.",
+      "type": "js",
+      "themes": [
+        "avone"
+      ],
+      "tags": [
+        "avone",
+        "cart",
+        "drawer",
+        "update-cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  window.forceReloadCartDrawer = function () {\n    const cartDrawer = document.querySelector('cart-drawer');\n    if (!cartDrawer) return;\n    const sectionsToRender = cartDrawer.getSectionsToRender().map(s => s.id);\n    fetch(window.routes?.cart_update_url || '/cart/update.js', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', 'Accept': 'application/javascript' },\n      body: JSON.stringify({ sections: sectionsToRender })\n    })\n    .then(r => r.json())\n    .then(state => {\n      cartDrawer.renderContents(state);\n      cartDrawer.open();\n    })\n    .catch(console.error);\n  };\n  window.forceReloadCartDrawer();\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-cornerstone",
+      "title": "Corner Stone - Quick Cart Drawer & Cart Icon Header",
+      "category": "Update Cart Count",
+      "description": "Cập nhật Quick Cart Drawer và icon cart ở header (cả Desktop & Mobile) sau khi add to cart theme Corner Stone.",
+      "type": "js",
+      "themes": [
+        "corner-stone",
+        "cornerstone"
+      ],
+      "tags": [
+        "cornerstone",
+        "cart",
+        "drawer",
+        "header-count"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  fetch(window.location.href)\n    .then(response => response.text())\n    .then(html => {\n      const parser = new DOMParser();\n      const doc = parser.parseFromString(html, 'text/html');\n\n      // 1. Cart Drawer (Quick Cart)\n      const newDrawer = doc.querySelector('.quick-cart, #quick-cart, [data-quick-cart]');\n      const currentDrawer = document.querySelector('.quick-cart, #quick-cart, [data-quick-cart]');\n      if (newDrawer && currentDrawer) {\n        currentDrawer.innerHTML = newDrawer.innerHTML;\n      }\n\n      // 2. Icon Cart on Header (Desktop & Mobile)\n      const newCartCount = doc.querySelector('.cart-count, [data-cart-count], .cart-link__bubble');\n      const currentCartCount = document.querySelector('.cart-count, [data-cart-count], .cart-link__bubble');\n      if (newCartCount && currentCartCount) {\n        currentCartCount.innerHTML = newCartCount.innerHTML;\n        currentCartCount.classList.remove('hide', 'hidden');\n      }\n\n      // Mở Drawer nếu có method\n      if (typeof theme !== 'undefined' && theme.cart && typeof theme.cart.open === 'function') {\n        theme.cart.open();\n      } else if (typeof window.openQuickCart === 'function') {\n        window.openQuickCart();\n      }\n    })\n    .catch(error => console.error('Error updating cart:', error));\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-eurus",
+      "title": "Eurus - Re-render & mở Cart Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Fetch sections cart-drawer & cart-icon-bubble, gọi renderContents và dispatch event mở drawer theme Eurus.",
+      "type": "js",
+      "themes": [
+        "eurus"
+      ],
+      "tags": [
+        "eurus",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const drawer = document.querySelector('cart-drawer');\n  if (drawer) {\n    fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n      .then(res => res.json())\n      .then(res => {\n        drawer.renderContents({ sections: res });\n        document.dispatchEvent(new CustomEvent('eurus:cart-drawer:open'));\n      });\n    if (drawer.classList.contains('is-empty')) drawer.classList.remove('is-empty');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-horizon-vessel",
+      "title": "Horizon & Vessel - Deferred Event Promise CartDrawerComponent",
+      "category": "Update Cart Count",
+      "description": "Dispatch deferred event promise theo chuẩn CartDrawerComponent của Horizon & Vessel để re-render chính xác.",
+      "type": "js",
+      "themes": [
+        "horizon",
+        "vessel"
+      ],
+      "tags": [
+        "horizon",
+        "vessel",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  let resolvePromise;\n  const cartPromise = new Promise((resolve) => { resolvePromise = resolve; });\n  const event = new CustomEvent('cart-item:add:finished', {\n    bubbles: true,\n    detail: { cart: cartPromise }\n  });\n  document.dispatchEvent(event);\n  fetch('/cart.js')\n    .then(response => response.json())\n    .then(cartData => { resolvePromise(cartData); })\n    .catch(error => console.error('Error fetching cart:', error));\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-unico",
+      "title": "Unico - Re-render Cart Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Re-render drawer và cập nhật số lượng item theme Unico.",
+      "type": "js",
+      "themes": [
+        "unico"
+      ],
+      "tags": [
+        "unico",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const drawer = document.querySelector('cart-drawer');\n  if (drawer) {\n    fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n      .then(res => res.json())\n      .then(res => drawer.renderContents({ sections: res }));\n    if (drawer.classList.contains('is-empty')) drawer.classList.remove('is-empty');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-kalles",
+      "title": "Kalles - Update Header Cart Count & Slide Cart",
+      "category": "Update Cart Count",
+      "description": "Cập nhật cart count badge và trigger slide cart của theme Kalles.",
+      "type": "js",
+      "themes": [
+        "kalles"
+      ],
+      "tags": [
+        "kalles",
+        "cart",
+        "count"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  if (window.location.pathname.indexOf('/cart') === -1) {\n    fetch('/cart.js')\n      .then(res => res.json())\n      .then(cart => {\n        const cartCounts = document.querySelectorAll('.t4s-cart-count, .cart-count');\n        cartCounts.forEach(el => { el.textContent = cart.item_count; });\n        document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n      });\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-sleek",
+      "title": "Sleek - Render Sections Cart Drawer",
+      "category": "Update Cart Count",
+      "description": "Fetch cart-drawer section và render vào cart-drawer của Sleek theme.",
+      "type": "js",
+      "themes": [
+        "sleek"
+      ],
+      "tags": [
+        "sleek",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const drawer = document.querySelector('cart-drawer');\n  if (drawer && typeof drawer.renderContents === 'function') {\n    const res = await fetch(window.location.pathname + '?sections=cart-drawer').then(r => r.json());\n    drawer.renderContents({ sections: res });\n    drawer.open && drawer.open();\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-expanse",
+      "title": "Expanse - Trigger Cart Drawer Open",
+      "category": "Update Cart Count",
+      "description": "Dispatch event cart:build & mở ajax cart drawer theme Expanse.",
+      "type": "js",
+      "themes": [
+        "expanse"
+      ],
+      "tags": [
+        "expanse",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  document.dispatchEvent(new CustomEvent('cart:build'));\n  document.dispatchEvent(new CustomEvent('cart:open'));\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-capital",
+      "title": "Capital (Eight Theme) - Update Cart Drawer",
+      "category": "Update Cart Count",
+      "description": "Gọi window.wetheme.drawer._updateCartDrawer sau khi add to cart theme Capital.",
+      "type": "js",
+      "themes": [
+        "capital"
+      ],
+      "tags": [
+        "capital",
+        "eight-theme",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  fetch('/cart.js')\n    .then(res => res.json())\n    .then(data => {\n      if (window.wetheme?.drawer?._updateCartDrawer) {\n        window.wetheme.drawer._updateCartDrawer(data);\n      }\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-turbo",
+      "title": "Turbo - Re-render Cart & Slideout",
+      "category": "Update Cart Count",
+      "description": "Cập nhật giỏ hàng theme Turbo, scroll to top và mở cart modal/drawer.",
+      "type": "js",
+      "themes": [
+        "turbo"
+      ],
+      "tags": [
+        "turbo",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  fetch('/cart.js')\n    .then(res => res.json())\n    .then(cart => {\n      const cartCount = document.querySelectorAll('.cart-count, .cart__count');\n      cartCount.forEach(el => { el.textContent = cart.item_count; });\n      if (typeof window.theme?.cart?.update === 'function') {\n        window.theme.cart.update();\n      }\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-slidecarthq",
+      "title": "SlideCartHQ - Integration & Cart Refresh",
+      "category": "Update Cart Count",
+      "description": "MutationObserver để theo dõi overlay SlideCartHQ và kích hoạt cập nhật giỏ hàng sau khi add to cart.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "slidecarthq",
+        "cart",
+        "drawer",
+        "app"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  const bodyObserver = new MutationObserver(() => {\n    const overlay = document.querySelector('#slidecarthq .slidecarthq-overlay');\n    if (overlay) {\n      bodyObserver.disconnect();\n    }\n  });\n  bodyObserver.observe(document.body, { childList: true, subtree: true });\n});\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  if (window.SLIDECART && typeof window.SLIDECART.open === 'function') {\n    window.SLIDECART.open();\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-upcart-customization-image",
+      "title": "UpCart - Thay thumbnail bằng Customization Image",
+      "category": "Theme Integration",
+      "description": "Cấu hình mapping property thumbnail của Teeinblue sang hình ảnh customization trong UpCart drawer.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "upcart",
+        "cart",
+        "thumbnail",
+        "customization-image"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  setTimeout(() => {\n    document.querySelectorAll('.upcart-product-tile, .upcart-item').forEach(tile => {\n      const img = tile.querySelector('img');\n      const customImg = tile.querySelector('[data-property*=\"customization_image\"], [data-property*=\"preview\"]');\n      if (img && customImg && customImg.textContent) {\n        img.src = customImg.textContent.trim();\n      }\n    });\n  }, 800);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "ui-border-radius-8px",
+      "title": "Bo tròn toàn bộ giao diện Teeinblue (Border Radius 8px)",
+      "category": "Fix CSS",
+      "description": "Áp dụng border-radius 8px cho toàn bộ nút bấm, inputs, selects, clipart, swatch và popup của Teeinblue.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "border-radius",
+        "ui",
+        "css",
+        "style"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Bo tròn 8px giao diện Teeinblue */\n.teeinblue-enabled button.tee-btn,\n.teeinblue-enabled div.tee-radio,\n.teeinblue-enabled .tee-field__select,\n.teeinblue-enabled .tee-form-input,\n.teeinblue-enabled .tee-clipart,\n.teeinblue-enabled .tee-photo-placeholder,\n.teeinblue-enabled .tee-photo-action .tee-btn,\n.teeinblue-enabled .tee__paragraph,\n.teeinblue-enabled .tee-timepicker__input {\n  border-radius: 8px !important;\n}\n\n.teeinblue-enabled .tee-quantity-minus {\n  border-top-left-radius: 8px;\n  border-bottom-left-radius: 8px;\n}\n\n.teeinblue-enabled .tee-quantity-plus {\n  border-top-right-radius: 8px;\n  border-bottom-right-radius: 8px;\n}\n\n.tee-slider .tee-slide,\n.tee-mockup-item .tee-mockup-image,\n.tee-mockup-item .tee-printarea-wrapper--image > img {\n  border-radius: 8px;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-rtl-arabic-hebrew-support",
+      "title": "Hỗ trợ ngôn ngữ RTL (Right-to-Left: Ả Rập, Hebrew)",
+      "category": "Fix CSS",
+      "description": "Căn chỉnh lại layout, dialog cropper và overflow cho các website sử dụng hướng đọc phải sang trái (RTL).",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "rtl",
+        "arabic",
+        "hebrew",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Hỗ trợ hiển thị RTL cho Teeinblue */\n@media only screen and (min-width: 992px) {\n  .tee-dialog-image-cropper.vm--modal {\n    left: -50% !important;\n    transform: translateX(50%) !important;\n  }\n}\n\n@media only screen and (max-width: 990px) {\n  .teeinblue-enabled .product {\n    overflow: hidden;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-classic-cropper-style",
+      "title": "Khôi phục giao diện Image Cropper kiểu cổ điển",
+      "category": "Fix CSS",
+      "description": "Chuyển phong cách khung cắt ảnh (cropper modal) từ dạng modern sang giao diện cổ điển dễ dùng.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "cropper",
+        "modal",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Image Cropper Classic Style */\n.tee-dialog-image-cropper .cropper-view-box {\n  outline: 2px solid #fff !important;\n  outline-color: rgba(255, 255, 255, 0.75) !important;\n}\n\n.tee-dialog-image-cropper .cropper-line {\n  background-color: transparent !important;\n}\n\n.tee-dialog-image-cropper .cropper-point {\n  width: 10px !important;\n  height: 10px !important;\n  background-color: #39f !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-preview-popup-z-index-fix",
+      "title": "Fix Preview Popup bị chìm phía sau Sticky Header",
+      "category": "Fix CSS",
+      "description": "Tăng z-index của container popup preview và dialog để không bao giờ bị menu/header che khuất.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "z-index",
+        "preview-popup",
+        "header-overlap"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Fix preview popup overlap */\n.vm--container.tee-preview-popup,\n.vm--container.tee-dialog-preview {\n  z-index: 99999999 !important;\n}\n\n.teeinblue-enabled .shopify-section-header-sticky {\n  z-index: 100 !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-ios-scrollable-fix",
+      "title": "Fix cuộn trang bị khóa trên trình duyệt iOS",
+      "category": "Fix CSS",
+      "description": "Khắc phục lỗi không cuộn được trang trên iPhone/iPad khi popup hoặc modal Teeinblue đóng lại.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "ios",
+        "safari",
+        "overflow",
+        "scroll"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Fix scrollable in iOS browsers */\nhtml.tee-overflow-hidden,\nbody.tee-overflow-hidden {\n  position: static !important;\n  overflow: auto !important;\n  -webkit-overflow-scrolling: touch;\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-loading-placeholder-shimmer",
+      "title": "Hiển thị Loading Placeholder trong khi Teeinblue đang tải",
+      "category": "Fix CSS",
+      "description": "Tạo khung placeholder loading shimmer tạm thời tại vị trí form giúp giảm hiện tượng layout shift.",
+      "type": "mixed",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "loading",
+        "skeleton",
+        "shimmer",
+        "ux"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "<script>\nfunction initTeeinblueLoader() {\n  const observer = new MutationObserver((mutations, obs) => {\n    const target = document.querySelector('.teeinblue-product-loading, #tee-artwork-form');\n    if (target && !document.querySelector('#tib-loading-placeholder')) {\n      const placeholder = document.createElement('div');\n      placeholder.id = 'tib-loading-placeholder';\n      placeholder.innerHTML = '<div class=\"tib-shimmer\">Đang tải tùy chỉnh sản phẩm...</div>';\n      target.parentNode.insertBefore(placeholder, target);\n    }\n    if (document.querySelector('.teeinblue-enabled #tee-artwork-form')) {\n      const ph = document.querySelector('#tib-loading-placeholder');\n      if (ph) ph.remove();\n      obs.disconnect();\n    }\n  });\n  observer.observe(document.body, { childList: true, subtree: true });\n}\ninitTeeinblueLoader();\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Loading shimmer placeholder */\n#tib-loading-placeholder {\n  width: 100%;\n  padding: 24px;\n  background: #f7f7f7;\n  border-radius: 8px;\n  margin-bottom: 16px;\n  text-align: center;\n  color: #666;\n  font-weight: 500;\n  animation: tibPulse 1.5s infinite;\n}\n\n@keyframes tibPulse {\n  0% { opacity: 0.6; }\n  50% { opacity: 1; }\n  100% { opacity: 0.6; }\n}"
+        }
+      ]
+    },
+    {
+      "id": "hook-fly-to-cart-double-fix",
+      "title": "Fix Fly-to-Cart Animation bị kích hoạt 2 lần",
+      "category": "Theme Integration",
+      "description": "Sử dụng window.teeinblue.beforeAddToCart để chặn animation mặc định của theme và chỉ chạy 1 lần.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "animation",
+        "fly-to-cart",
+        "beforeAddToCart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "document.addEventListener('teeinblue-event-component-injected', () => {\n<script>\n  teeinblue = {\n    beforeAddToCart: (input) => {,\n  };\n</script>\nconst flyComponent = document.querySelector('add-to-cart-component');\n    if (flyComponent && typeof flyComponent.publicAnimateFlyToCart === 'function') {\n      flyComponent.publicAnimateFlyToCart();\n    }\n    return input;\n  };\n});"
+        }
+      ]
+    },
+    {
+      "id": "hook-hide-form-when-empty",
+      "title": "Tự động ẩn Form Teeinblue khi không có input nào",
+      "category": "Theme Integration",
+      "description": "Kiểm tra sau khi inject: nếu #teeFormInputs rỗng hoặc chỉ có input ẩn, tự động ẩn wrapper để tránh chiếm diện tích.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "empty-form",
+        "hide-elements",
+        "ux"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const teeFormInputs = document.getElementById('teeFormInputs');\n  if (teeFormInputs && (teeFormInputs.children.length === 0 || (teeFormInputs.children.length === 1 && teeFormInputs.children[0].classList.contains('sr-only')))) {\n    teeFormInputs.style.display = 'none';\n    const formWrapper = document.getElementById('tee-artwork-form');\n    if (formWrapper && !formWrapper.querySelector('.tee-btn--preview')) {\n      formWrapper.style.display = 'none';\n    }\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-move-dom-element",
+      "title": "Di chuyển Element bên ngoài vào trong Form Teeinblue",
+      "category": "Theme Integration",
+      "description": "Dùng MutationObserver chuyển các khối như Delivery Estimate, Badge hoặc Reviews vào trước/sau #teeFormActions.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "dom-mover",
+        "mutation-observer",
+        "form-layout"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const SOURCE_SELECTOR = 'essential-estimated-delivery-app-embed, .trust-badge-block';\n  const TARGET_SELECTOR = '#teeFormActions';\n\n  const moveElement = () => {\n    const source = document.querySelector(SOURCE_SELECTOR);\n    const target = document.querySelector(TARGET_SELECTOR);\n    if (source && target && !target.contains(source)) {\n      target.parentNode.insertBefore(source, target.nextSibling);\n      return true;\n    }\n    return false;\n  };\n\n  if (!moveElement()) {\n    const observer = new MutationObserver(() => {\n      if (moveElement()) observer.disconnect();\n    });\n    observer.observe(document.body, { childList: true, subtree: true });\n    setTimeout(() => observer.disconnect(), 10000);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-insert-size-chart-button",
+      "title": "Chèn nút Size Chart của Theme vào cạnh Option Teeinblue",
+      "category": "Theme Integration",
+      "description": "Lấy nút Size Chart modal của theme và render vào cạnh nhãn kích cỡ (Size) trong form Teeinblue.",
+      "type": "js",
+      "themes": [
+        "vision",
+        "turbo",
+        "*"
+      ],
+      "tags": [
+        "size-chart",
+        "dom-mover",
+        "variant"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const sizeButton = document.querySelector('.product-popup-modal__button, [data-modal-open*=\"size\"], .size-chart-link');\n  const sizeLabel = Array.from(document.querySelectorAll('.tee-field__label')).find(el => /size|kích thước/i.test(el.textContent));\n  if (sizeButton && sizeLabel && !sizeLabel.querySelector('.tib-cloned-size-chart')) {\n    const clone = sizeButton.cloneNode(true);\n    clone.classList.add('tib-cloned-size-chart');\n    clone.style.marginLeft = '8px';\n    clone.addEventListener('click', (e) => {\n      e.preventDefault();\n      sizeButton.click();\n    });\n    sizeLabel.appendChild(clone);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-sdkv2-variant-sync",
+      "title": "SDK v2 - Đồng bộ Variant Theme & Clone Node",
+      "category": "Theme Integration",
+      "description": "Lắng nghe sự kiện đổi variant trên theme để dispatch teeinblue-event-clone-node và cập nhật lại form.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "sdkv2",
+        "variant-sync",
+        "clone-node"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('click', (event) => {\n  const variantSelector = event.target.closest('[class*=\"variant-selects\"], [class*=\"variant-radios\"], [class*=\"product-form__input\"]');\n  if (variantSelector) {\n    setTimeout(() => {\n      document.dispatchEvent(new CustomEvent('teeinblue-event-clone-node'));\n    }, 1000);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-retry-broken-thumbnail",
+      "title": "Tự động tải lại Thumbnail Teeinblue khi CDN lỗi (Auto Retry)",
+      "category": "Theme Integration",
+      "description": "Bắt sự kiện error của thẻ img từ Teeinblue, tự động gắn timestamp bypass cache để fetch lại tối đa 5 lần.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "retry",
+        "thumbnail",
+        "cdn",
+        "cache"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('error', function (e) {\n  if (e.target.tagName && e.target.tagName.toLowerCase() === 'img' && e.target.src && e.target.src.includes('teeinblue')) {\n    let img = e.target;\n    let retryCount = parseInt(img.dataset.retry) || 0;\n    const maxRetries = 5;\n    if (retryCount < maxRetries) {\n      img.dataset.retry = retryCount + 1;\n      setTimeout(function () {\n        const url = new URL(img.src);\n        url.searchParams.set('_retry', Date.now());\n        img.src = url.toString();\n      }, 1000 * Math.pow(2, retryCount));\n    }\n  }\n}, true);\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-sdkv2-cross-sell-redirect",
+      "title": "SDK v2 - Cross-sell Product Metafield Redirect",
+      "category": "Theme Integration",
+      "description": "Tự động lắng nghe metafield cross_sell_product và dispatch theme:product-added sau khi add to cart.",
+      "type": "liquid",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "cross-sell",
+        "sdkv2",
+        "metafield"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/teeinblue-cross-sell.liquid",
+          "mode": "create",
+          "code": "{% if product and product.metafields.custom.cross_sell_product.value %}\n<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const crossSellHandle = '{{ product.metafields.custom.cross_sell_product.value.handle }}';\n  if (crossSellHandle) {\n    window.location.href = '/products/' + crossSellHandle;\n  }\n});\n</script>\n{% endif %}"
+        },
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "{% render 'teeinblue-cross-sell' %}"
+        }
+      ]
+    },
+    {
+      "id": "security-anti-copy-protection",
+      "title": "Chống sao chép nội dung & hiển thị thông báo bản quyền",
+      "category": "Store Protection",
+      "description": "Chặn lệnh copy (Ctrl+C), ghi đè nội dung clipboard và hiển thị popup toast thông báo bảo vệ nội dung.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "security",
+        "anti-copy",
+        "protection"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n(function() {\n  'use strict';\n  const customCopyMessage = 'Nội dung này được bảo vệ bản quyền.';\n  document.addEventListener('copy', function(e) {\n    e.preventDefault();\n    if (e.clipboardData) {\n      e.clipboardData.setData('text/plain', customCopyMessage);\n    }\n    const toast = document.createElement('div');\n    toast.textContent = customCopyMessage;\n    Object.assign(toast.style, {\n      position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',\n      backgroundColor: 'rgba(0,0,0,0.8)', color: '#fff', padding: '10px 20px',\n      borderRadius: '4px', zIndex: '999999', fontSize: '14px'\n    });\n    document.body.appendChild(toast);\n    setTimeout(() => toast.remove(), 2000);\n  });\n})();\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "security-anti-devtools-timing-attack",
+      "title": "Chặn phím tắt DevTools, Chuột phải & Timing Attack Debugger",
+      "category": "Store Protection",
+      "description": "Kỹ thuật Timing Attack với debugger động để phát hiện DevTools, chặn F12, Ctrl+Shift+I/J/C, Ctrl+U và chuột phải.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "security",
+        "anti-devtools",
+        "timing-attack",
+        "protection"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n(function() {\n  'use strict';\n  // Chặn phím tắt F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S\n  document.addEventListener('keydown', function(e) {\n    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) || (e.ctrlKey && ['U', 'S'].includes(e.key.toUpperCase()))) {\n      e.preventDefault();\n      return false;\n    }\n  });\n  // Chặn chuột phải\n  document.addEventListener('contextmenu', e => e.preventDefault());\n  // Timing attack debugger\n  const detectDevTools = function() {\n    const startTime = performance.now();\n    (new Function('debugger'))();\n    if (performance.now() - startTime > 100) {\n      console.clear();\n      window.location.reload();\n    }\n  };\n  setInterval(detectDevTools, 2000);\n})();\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "util-console-export-design-links",
+      "title": "Script Console: Xuất toàn bộ Design Links của sản phẩm",
+      "category": "Store Protection",
+      "description": "Script chạy trực tiếp trên Console DevTools để quét và lấy toàn bộ đường dẫn artwork/design của sản phẩm Teeinblue.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "utility",
+        "console-script",
+        "export-design"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/tib-dev-console-export.liquid",
+          "mode": "create",
+          "code": "{% comment %}\nPaste script này vào Console trình duyệt trên trang sản phẩm Teeinblue để lấy toàn bộ links artwork:\n{% endcomment %}\n<script>\nwindow.tibExportDesignLinks = function() {\n  const images = Array.from(document.querySelectorAll('.tee-mockup-image img, .tee-printarea-wrapper--image img, #tee-gallery img'))\n    .map(img => img.src)\n    .filter(Boolean);\n  const unique = [...new Set(images)];\n  console.log('--- FOUND ' + unique.length + ' DESIGN / MOCKUP ASSETS ---');\n  unique.forEach((src, idx) => console.log(`[${idx + 1}] ${src}`));\n  return unique;\n};\n</script>"
+        }
       ]
     }
   ]

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-13T14:41:57.042Z",
+  "snippets": [
+    {
+      "id": "security-anti-copy-protection",
+      "title": "Chống sao chép nội dung & hiển thị thông báo bản quyền",
+      "category": "Store Protection",
+      "description": "Chặn lệnh copy (Ctrl+C), ghi đè nội dung clipboard và hiển thị popup toast thông báo bảo vệ nội dung.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "security",
+        "anti-copy",
+        "protection"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n(function() {\n  'use strict';\n  const customCopyMessage = 'Nội dung này được bảo vệ bản quyền.';\n  document.addEventListener('copy', function(e) {\n    e.preventDefault();\n    if (e.clipboardData) {\n      e.clipboardData.setData('text/plain', customCopyMessage);\n    }\n    const toast = document.createElement('div');\n    toast.textContent = customCopyMessage;\n    Object.assign(toast.style, {\n      position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',\n      backgroundColor: 'rgba(0,0,0,0.8)', color: '#fff', padding: '10px 20px',\n      borderRadius: '4px', zIndex: '999999', fontSize: '14px'\n    });\n    document.body.appendChild(toast);\n    setTimeout(() => toast.remove(), 2000);\n  });\n})();\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "security-anti-devtools-timing-attack",
+      "title": "Chặn phím tắt DevTools, Chuột phải & Timing Attack Debugger",
+      "category": "Store Protection",
+      "description": "Kỹ thuật Timing Attack với debugger động để phát hiện DevTools, chặn F12, Ctrl+Shift+I/J/C, Ctrl+U và chuột phải.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "security",
+        "anti-devtools",
+        "timing-attack",
+        "protection"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n(function() {\n  'use strict';\n  // Chặn phím tắt F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S\n  document.addEventListener('keydown', function(e) {\n    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) || (e.ctrlKey && ['U', 'S'].includes(e.key.toUpperCase()))) {\n      e.preventDefault();\n      return false;\n    }\n  });\n  // Chặn chuột phải\n  document.addEventListener('contextmenu', e => e.preventDefault());\n  // Timing attack debugger\n  const detectDevTools = function() {\n    const startTime = performance.now();\n    (new Function('debugger'))();\n    if (performance.now() - startTime > 100) {\n      console.clear();\n      window.location.reload();\n    }\n  };\n  setInterval(detectDevTools, 2000);\n})();\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "util-console-export-design-links",
+      "title": "Script Console: Xuất toàn bộ Design Links của sản phẩm",
+      "category": "Store Protection",
+      "description": "Script chạy trực tiếp trên Console DevTools để quét và lấy toàn bộ đường dẫn artwork/design của sản phẩm Teeinblue.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "utility",
+        "console-script",
+        "export-design"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/tib-dev-console-export.liquid",
+          "mode": "create",
+          "code": "{% comment %}\nPaste script này vào Console trình duyệt trên trang sản phẩm Teeinblue để lấy toàn bộ links artwork:\n{% endcomment %}\n<script>\nwindow.tibExportDesignLinks = function() {\n  const images = Array.from(document.querySelectorAll('.tee-mockup-image img, .tee-printarea-wrapper--image img, #tee-gallery img'))\n    .map(img => img.src)\n    .filter(Boolean);\n  const unique = [...new Set(images)];\n  console.log('--- FOUND ' + unique.length + ' DESIGN / MOCKUP ASSETS ---');\n  unique.forEach((src, idx) => console.log(`[${idx + 1}] ${src}`));\n  return unique;\n};\n</script>"
+        }
+      ]
+    }
+  ]
+}

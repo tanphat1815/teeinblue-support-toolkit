@@ -1,0 +1,278 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-13T14:41:57.038Z",
+  "snippets": [
+    {
+      "id": "cart-drawer-avone",
+      "title": "Avone - Re-render & mở Cart Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Lắng nghe teeinblue-event-after-cart-added, gọi /cart/update.js và renderContents của cart-drawer trên theme Avone.",
+      "type": "js",
+      "themes": [
+        "avone"
+      ],
+      "tags": [
+        "avone",
+        "cart",
+        "drawer",
+        "update-cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  window.forceReloadCartDrawer = function () {\n    const cartDrawer = document.querySelector('cart-drawer');\n    if (!cartDrawer) return;\n    const sectionsToRender = cartDrawer.getSectionsToRender().map(s => s.id);\n    fetch(window.routes?.cart_update_url || '/cart/update.js', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', 'Accept': 'application/javascript' },\n      body: JSON.stringify({ sections: sectionsToRender })\n    })\n    .then(r => r.json())\n    .then(state => {\n      cartDrawer.renderContents(state);\n      cartDrawer.open();\n    })\n    .catch(console.error);\n  };\n  window.forceReloadCartDrawer();\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-cornerstone",
+      "title": "Corner Stone - Quick Cart Drawer & Cart Icon Header",
+      "category": "Update Cart Count",
+      "description": "Cập nhật Quick Cart Drawer và icon cart ở header (cả Desktop & Mobile) sau khi add to cart theme Corner Stone.",
+      "type": "js",
+      "themes": [
+        "corner-stone",
+        "cornerstone"
+      ],
+      "tags": [
+        "cornerstone",
+        "cart",
+        "drawer",
+        "header-count"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  fetch(window.location.href)\n    .then(response => response.text())\n    .then(html => {\n      const parser = new DOMParser();\n      const doc = parser.parseFromString(html, 'text/html');\n\n      // 1. Cart Drawer (Quick Cart)\n      const newDrawer = doc.querySelector('.quick-cart, #quick-cart, [data-quick-cart]');\n      const currentDrawer = document.querySelector('.quick-cart, #quick-cart, [data-quick-cart]');\n      if (newDrawer && currentDrawer) {\n        currentDrawer.innerHTML = newDrawer.innerHTML;\n      }\n\n      // 2. Icon Cart on Header (Desktop & Mobile)\n      const newCartCount = doc.querySelector('.cart-count, [data-cart-count], .cart-link__bubble');\n      const currentCartCount = document.querySelector('.cart-count, [data-cart-count], .cart-link__bubble');\n      if (newCartCount && currentCartCount) {\n        currentCartCount.innerHTML = newCartCount.innerHTML;\n        currentCartCount.classList.remove('hide', 'hidden');\n      }\n\n      // Mở Drawer nếu có method\n      if (typeof theme !== 'undefined' && theme.cart && typeof theme.cart.open === 'function') {\n        theme.cart.open();\n      } else if (typeof window.openQuickCart === 'function') {\n        window.openQuickCart();\n      }\n    })\n    .catch(error => console.error('Error updating cart:', error));\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-eurus",
+      "title": "Eurus - Re-render & mở Cart Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Fetch sections cart-drawer & cart-icon-bubble, gọi renderContents và dispatch event mở drawer theme Eurus.",
+      "type": "js",
+      "themes": [
+        "eurus"
+      ],
+      "tags": [
+        "eurus",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const drawer = document.querySelector('cart-drawer');\n  if (drawer) {\n    fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n      .then(res => res.json())\n      .then(res => {\n        drawer.renderContents({ sections: res });\n        document.dispatchEvent(new CustomEvent('eurus:cart-drawer:open'));\n      });\n    if (drawer.classList.contains('is-empty')) drawer.classList.remove('is-empty');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-horizon-vessel",
+      "title": "Horizon & Vessel - Deferred Event Promise CartDrawerComponent",
+      "category": "Update Cart Count",
+      "description": "Dispatch deferred event promise theo chuẩn CartDrawerComponent của Horizon & Vessel để re-render chính xác.",
+      "type": "js",
+      "themes": [
+        "horizon",
+        "vessel"
+      ],
+      "tags": [
+        "horizon",
+        "vessel",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  let resolvePromise;\n  const cartPromise = new Promise((resolve) => { resolvePromise = resolve; });\n  const event = new CustomEvent('cart-item:add:finished', {\n    bubbles: true,\n    detail: { cart: cartPromise }\n  });\n  document.dispatchEvent(event);\n  fetch('/cart.js')\n    .then(response => response.json())\n    .then(cartData => { resolvePromise(cartData); })\n    .catch(error => console.error('Error fetching cart:', error));\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-unico",
+      "title": "Unico - Re-render Cart Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Re-render drawer và cập nhật số lượng item theme Unico.",
+      "type": "js",
+      "themes": [
+        "unico"
+      ],
+      "tags": [
+        "unico",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const drawer = document.querySelector('cart-drawer');\n  if (drawer) {\n    fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n      .then(res => res.json())\n      .then(res => drawer.renderContents({ sections: res }));\n    if (drawer.classList.contains('is-empty')) drawer.classList.remove('is-empty');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-kalles",
+      "title": "Kalles - Update Header Cart Count & Slide Cart",
+      "category": "Update Cart Count",
+      "description": "Cập nhật cart count badge và trigger slide cart của theme Kalles.",
+      "type": "js",
+      "themes": [
+        "kalles"
+      ],
+      "tags": [
+        "kalles",
+        "cart",
+        "count"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  if (window.location.pathname.indexOf('/cart') === -1) {\n    fetch('/cart.js')\n      .then(res => res.json())\n      .then(cart => {\n        const cartCounts = document.querySelectorAll('.t4s-cart-count, .cart-count');\n        cartCounts.forEach(el => { el.textContent = cart.item_count; });\n        document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n      });\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-sleek",
+      "title": "Sleek - Render Sections Cart Drawer",
+      "category": "Update Cart Count",
+      "description": "Fetch cart-drawer section và render vào cart-drawer của Sleek theme.",
+      "type": "js",
+      "themes": [
+        "sleek"
+      ],
+      "tags": [
+        "sleek",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const drawer = document.querySelector('cart-drawer');\n  if (drawer && typeof drawer.renderContents === 'function') {\n    const res = await fetch(window.location.pathname + '?sections=cart-drawer').then(r => r.json());\n    drawer.renderContents({ sections: res });\n    drawer.open && drawer.open();\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-expanse",
+      "title": "Expanse - Trigger Cart Drawer Open",
+      "category": "Update Cart Count",
+      "description": "Dispatch event cart:build & mở ajax cart drawer theme Expanse.",
+      "type": "js",
+      "themes": [
+        "expanse"
+      ],
+      "tags": [
+        "expanse",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  document.dispatchEvent(new CustomEvent('cart:build'));\n  document.dispatchEvent(new CustomEvent('cart:open'));\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-capital",
+      "title": "Capital (Eight Theme) - Update Cart Drawer",
+      "category": "Update Cart Count",
+      "description": "Gọi window.wetheme.drawer._updateCartDrawer sau khi add to cart theme Capital.",
+      "type": "js",
+      "themes": [
+        "capital"
+      ],
+      "tags": [
+        "capital",
+        "eight-theme",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  fetch('/cart.js')\n    .then(res => res.json())\n    .then(data => {\n      if (window.wetheme?.drawer?._updateCartDrawer) {\n        window.wetheme.drawer._updateCartDrawer(data);\n      }\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-turbo",
+      "title": "Turbo - Re-render Cart & Slideout",
+      "category": "Update Cart Count",
+      "description": "Cập nhật giỏ hàng theme Turbo, scroll to top và mở cart modal/drawer.",
+      "type": "js",
+      "themes": [
+        "turbo"
+      ],
+      "tags": [
+        "turbo",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  fetch('/cart.js')\n    .then(res => res.json())\n    .then(cart => {\n      const cartCount = document.querySelectorAll('.cart-count, .cart__count');\n      cartCount.forEach(el => { el.textContent = cart.item_count; });\n      if (typeof window.theme?.cart?.update === 'function') {\n        window.theme.cart.update();\n      }\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-slidecarthq",
+      "title": "SlideCartHQ - Integration & Cart Refresh",
+      "category": "Update Cart Count",
+      "description": "MutationObserver để theo dõi overlay SlideCartHQ và kích hoạt cập nhật giỏ hàng sau khi add to cart.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "slidecarthq",
+        "cart",
+        "drawer",
+        "app"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  const bodyObserver = new MutationObserver(() => {\n    const overlay = document.querySelector('#slidecarthq .slidecarthq-overlay');\n    if (overlay) {\n      bodyObserver.disconnect();\n    }\n  });\n  bodyObserver.observe(document.body, { childList: true, subtree: true });\n});\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  if (window.SLIDECART && typeof window.SLIDECART.open === 'function') {\n    window.SLIDECART.open();\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-upcart-customization-image",
+      "title": "UpCart - Thay thumbnail bằng Customization Image",
+      "category": "Theme Integration",
+      "description": "Cấu hình mapping property thumbnail của Teeinblue sang hình ảnh customization trong UpCart drawer.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "upcart",
+        "cart",
+        "thumbnail",
+        "customization-image"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  setTimeout(() => {\n    document.querySelectorAll('.upcart-product-tile, .upcart-item').forEach(tile => {\n      const img = tile.querySelector('img');\n      const customImg = tile.querySelector('[data-property*=\"customization_image\"], [data-property*=\"preview\"]');\n      if (img && customImg && customImg.textContent) {\n        img.src = customImg.textContent.trim();\n      }\n    });\n  }, 800);\n});\n</script>"
+        }
+      ]
+    }
+  ]
+}

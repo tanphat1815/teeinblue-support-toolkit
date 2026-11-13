@@ -136,14 +136,14 @@ function handleViewAllFiltered() {
             </div>
           </div>
 
-          <!-- Cách ưu tiên: Nếu đã có tab Admin (như đang xem sản phẩm, orders, settings...) nhưng chưa bắt được session -->
-          <div v-if="admin?.adminTabId" class="rounded-lg border border-emerald-300 bg-emerald-50/70 p-2.5 space-y-2 shadow-xs">
+          <!-- Cách ưu tiên: Nếu đang ở tab Admin nhưng chưa bắt được session -->
+          <div v-if="ctx.kind === 'admin'" class="rounded-lg border border-emerald-300 bg-emerald-50/70 p-2.5 space-y-2 shadow-xs">
             <div class="flex items-center justify-between">
               <span class="font-semibold text-emerald-900 text-[11px] uppercase tracking-wide flex items-center gap-1.5">
                 <UntitledIcon name="zap" :size="13" class="text-emerald-600" />
                 <span>Cách 1: Tải lại tab Admin hiện tại</span>
               </span>
-              <span class="rounded bg-emerald-200/80 px-1.5 py-0.2 text-[9.5px] font-bold text-emerald-800 uppercase">Khuyên dùng</span>
+              <span class="rounded bg-emerald-200/80 px-1.5 py-0.2 text-[9.5px] font-bold text-emerald-800 uppercase">Khuyến dùng</span>
             </div>
             <p class="text-[11px] text-emerald-950 leading-snug">
               Bạn đang mở trang Admin của <b class="font-mono text-emerald-900">{{ storeDomain }}</b>. Bấm vào đây để tải lại tab đó và tự động bắt session/themes mà không cần mở thêm tab mới:
@@ -159,10 +159,10 @@ function handleViewAllFiltered() {
             </button>
           </div>
 
-          <!-- Cách 1: Qua Partner Dashboard (Khuyên dùng khi support khách) -->
+          <!-- Cách: Qua Partner Dashboard (Khuyên dùng khi support khách) -->
           <div class="rounded-lg border border-slate-200/90 bg-white p-2.5 space-y-2 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="font-semibold text-slate-800 text-[11px] uppercase tracking-wide">{{ admin?.adminTabId ? 'Cách 2: Qua Partner Dashboard' : 'Cách 1: Qua Partner Dashboard' }}</span>
+              <span class="font-semibold text-slate-800 text-[11px] uppercase tracking-wide">{{ ctx.kind === 'admin' ? 'Cách 2: Qua Partner Dashboard' : 'Cách 1: Qua Partner Dashboard' }}</span>
               <!-- Partner switcher tone xanh -->
               <div class="inline-flex rounded-md bg-blue-100/70 p-0.5 text-[11px] border border-blue-200/60">
                 <button
@@ -193,7 +193,7 @@ function handleViewAllFiltered() {
 
           <!-- Cách tiếp theo: Mở Online Store Themes -->
           <div class="rounded-lg border border-slate-200/90 bg-white p-2.5 space-y-2 shadow-sm">
-            <span class="block font-semibold text-slate-800 text-[11px] uppercase tracking-wide">{{ admin?.adminTabId ? 'Cách 3: Mở Online Store Themes' : 'Cách 2: Đăng nhập trực tiếp' }}</span>
+            <span class="block font-semibold text-slate-800 text-[11px] uppercase tracking-wide">{{ ctx.kind === 'admin' ? 'Cách 3: Mở Online Store Themes' : 'Cách 2: Đăng nhập trực tiếp' }}</span>
             <p class="text-[11px] text-slate-500">
               Dành cho trường hợp bạn đã đăng nhập sẵn hoặc có tài khoản staff trực tiếp trên store:
             </p>
@@ -218,8 +218,8 @@ function handleViewAllFiltered() {
           </div>
         </div>
 
-        <!-- Dropdown chọn Theme đích để Inject (chỉ hiển thị khi ĐANG Ở TRANG SHOPIFY và đã có session) -->
-        <div v-if="isCurrentTabShopify && admin?.hasSession" class="space-y-2">
+        <!-- Dropdown chọn Theme đích để Inject (hiển thị khi đã có session theme) -->
+        <div v-if="admin?.hasSession" class="space-y-2">
           <!-- Dropdown Theme với overlay/style khi bị khóa -->
           <div class="space-y-1">
             <div class="flex items-center justify-between">

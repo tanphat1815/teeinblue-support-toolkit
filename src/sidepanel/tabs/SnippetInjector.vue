@@ -20,7 +20,7 @@ const {
   admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
   reloadAdminTab, reloadingAdminTab,
   favorites, toggleFavorite, activeTabFilter, filterCounts,
-  query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
+  query, category, themeFilter, pageFilter, appFilter, typeFilter, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
   selectedIds, toggleSnippet, clearSelection, expandedId, toggleExpand,
   useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
   customFilename, CUSTOM_FOLDERS, MODES,
@@ -82,8 +82,10 @@ function handleResetAll() {
 function handleViewAllFiltered() {
   query.value = '';
   category.value = '';
+  themeFilter.value = 'All';
+  pageFilter.value = 'All';
+  appFilter.value = 'All';
   typeFilter.value = 'All';
-  themeGroup.value = 'All';
   showAllThemes.value = true;
   activeTabFilter.value = 'all';
   toast.info('Đã mở rộng hiển thị toàn bộ snippets.');
@@ -551,9 +553,9 @@ function handleViewAllFiltered() {
 
       <!-- Mode 1: Library Snippets -->
       <div v-if="!useCustom" class="space-y-2 pt-1">
-        <!-- Thanh Search & Filters chung một hàng ngang (giống hệt Design) -->
+        <!-- Hàng 1: Ô Search snippets bo tròn + Filter Theme + Favorites Button -->
         <div class="flex items-center gap-1.5">
-          <!-- Ô Search snippets bo tròn -->
+          <!-- Ô Search snippets -->
           <div class="relative min-w-0 flex-1 h-8">
             <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
               <UntitledIcon name="search-sm" :size="13" />
@@ -565,14 +567,14 @@ function handleViewAllFiltered() {
             />
           </div>
 
-          <!-- Filter Theme Dropdown Pill -->
+          <!-- Filter Theme Dropdown Pill (Hiển thị đầy đủ mọi theme: Dawn, Minimog, Sleek, Ella...) -->
           <div class="relative shrink-0">
             <select
-              v-model="themeGroup"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
+              v-model="themeFilter"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer max-w-[110px] truncate"
             >
               <option value="All">Theme</option>
-              <option v-for="g in themeGroups.filter((x) => x !== 'All')" :key="g" :value="g">{{ g }}</option>
+              <option v-for="t in availableThemes" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
               <UntitledIcon name="palette" :size="12" />
@@ -582,106 +584,109 @@ function handleViewAllFiltered() {
             </div>
           </div>
 
-          <!-- Filter Category Dropdown Pill -->
-          <div class="relative shrink-0">
-            <select
-              v-model="category"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
-            >
-              <option value="">Category</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layers-three" :size="12" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
-            </div>
-          </div>
-
-          <!-- Filter Type Dropdown Pill (+ More) -->
-          <div class="relative shrink-0">
-            <select
-              v-model="typeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer"
-            >
-              <option value="All">More</option>
-              <option value="css">CSS</option>
-              <option value="js">JS</option>
-              <option value="liquid">Liquid</option>
-              <option value="json">JSON</option>
-              <option value="mixed">Mixed</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="plus" :size="12" class="stroke-[2.5]" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Horizontal filter chips (All, Dawn, Debut, Turbo, Favorites) -->
-        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 text-[11px]">
+          <!-- Nút Lọc Favorites Chip gọn gàng -->
           <button
             type="button"
-            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
-            :class="activeTabFilter === 'all'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-            @click="activeTabFilter = 'all'"
-          >
-            All ({{ filterCounts.all }})
-          </button>
-
-          <button
-            type="button"
-            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
-            :class="activeTabFilter === 'dawn'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-            @click="activeTabFilter = 'dawn'"
-          >
-            Dawn ({{ filterCounts.dawn }})
-          </button>
-
-          <button
-            type="button"
-            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
-            :class="activeTabFilter === 'debut'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-            @click="activeTabFilter = 'debut'"
-          >
-            Debut ({{ filterCounts.debut }})
-          </button>
-
-          <button
-            type="button"
-            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
-            :class="activeTabFilter === 'turbo'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-            @click="activeTabFilter = 'turbo'"
-          >
-            Turbo ({{ filterCounts.turbo }})
-          </button>
-
-          <button
-            type="button"
-            class="shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            class="h-8 shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-all border"
             :class="activeTabFilter === 'favorites'
               ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-            @click="activeTabFilter = 'favorites'"
+            @click="activeTabFilter = activeTabFilter === 'favorites' ? 'all' : 'favorites'"
           >
             <UntitledIcon
               :name="activeTabFilter === 'favorites' ? 'star-filled' : 'star'"
               :size="12"
               :class="activeTabFilter === 'favorites' ? 'text-white' : 'text-slate-500'"
             />
-            <span>Favorites ({{ filterCounts.fav }})</span>
+            <span>Fav ({{ filterCounts.fav }})</span>
           </button>
+        </div>
+
+        <!-- Hàng 2: Bộ 4 Filter Dropdown chuyên sâu (Page, App/Integration, Category, Type) -->
+        <div class="grid grid-cols-4 gap-1.5">
+          <!-- 1. Filter theo Page (Product, Cart, Home, Collection, Global) -->
+          <div class="relative">
+            <select
+              v-model="pageFilter"
+              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
+              title="Lọc theo trang hiển thị"
+            >
+              <option value="All">Page</option>
+              <option value="product">Product</option>
+              <option value="cart">Cart/Drawer</option>
+              <option value="home">Home</option>
+              <option value="collection">Collection</option>
+              <option value="global">Global</option>
+            </select>
+            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="layout-alt" :size="11" />
+            </div>
+            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="9" />
+            </div>
+          </div>
+
+          <!-- 2. Filter theo App thứ 3 (UpCart, SlideCart, Revy, etc.) -->
+          <div class="relative">
+            <select
+              v-model="appFilter"
+              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
+              title="Lọc theo App tích hợp thứ 3"
+            >
+              <option value="All">App</option>
+              <option value="upcart">UpCart</option>
+              <option value="slidecart">SlideCart</option>
+              <option value="revy">Revy</option>
+              <option value="the4">The4</option>
+              <option value="other">Other Apps</option>
+            </select>
+            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="package" :size="11" />
+            </div>
+            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="9" />
+            </div>
+          </div>
+
+          <!-- 3. Filter Category Dropdown Pill -->
+          <div class="relative">
+            <select
+              v-model="category"
+              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
+              title="Lọc theo phân loại chức năng"
+            >
+              <option value="">Category</option>
+              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+            </select>
+            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="layers-three" :size="11" />
+            </div>
+            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="9" />
+            </div>
+          </div>
+
+          <!-- 4. Filter Type Dropdown Pill (More / Code type) -->
+          <div class="relative">
+            <select
+              v-model="typeFilter"
+              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
+              title="Lọc theo định dạng file code"
+            >
+              <option value="All">Type</option>
+              <option value="css">CSS</option>
+              <option value="js">JS</option>
+              <option value="liquid">Liquid</option>
+              <option value="json">JSON</option>
+              <option value="mixed">Mixed</option>
+            </select>
+            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="code-02" :size="11" />
+            </div>
+            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="9" />
+            </div>
+          </div>
         </div>
 
         <label class="flex items-center gap-2 text-xs text-slate-600 pt-0.5">
@@ -795,31 +800,51 @@ function handleViewAllFiltered() {
 
       <!-- Mode 2: Custom Code Builder -->
       <div v-else class="space-y-2 pt-1">
-        <p class="tib-muted">Tạo file riêng: CSS/JS → assets · Liquid → snippets/sections · JSON → templates</p>
+        <p class="text-[11px] text-slate-500">Tạo file riêng: CSS/JS → assets · Liquid → snippets/sections · JSON → templates</p>
         <div class="flex gap-1.5">
-          <button v-for="k in (['css', 'js', 'liquid', 'json'] as const)" :key="k"
-            class="tib-btn flex-1 px-1 py-1 text-xs font-semibold" :class="customKind === k ? '!border-brand-500 !bg-blue-50 !text-brand-600 shadow-sm' : ''"
-            @click="customKind = k">{{ k.toUpperCase() }}</button>
+          <button
+            v-for="k in (['css', 'js', 'liquid', 'json'] as const)"
+            :key="k"
+            class="tib-btn flex-1 px-2 py-1 text-[11px] font-bold"
+            :class="customKind === k ? '!border-brand-500 !bg-blue-50 !text-brand-600 shadow-2xs' : 'text-slate-600'"
+            @click="customKind = k"
+          >
+            {{ k.toUpperCase() }}
+          </button>
         </div>
+
         <div class="grid grid-cols-2 gap-1.5">
-          <label class="text-[11px] font-medium">Folder (auto theo loại)
-            <select v-model="customFolder" class="tib-input mt-0.5 font-mono text-xs">
+          <label class="text-[10.5px] font-medium text-slate-600">
+            Folder (auto theo loại)
+            <select v-model="customFolder" class="tib-input mt-0.5 font-mono text-[11px] py-1 px-2">
               <option v-for="f in CUSTOM_FOLDERS[customKind]" :key="f" :value="f">{{ f }}/</option>
             </select>
           </label>
-          <label class="text-[11px] font-medium">Tên file
-            <input v-model="customName" class="tib-input mt-0.5 font-mono text-xs" placeholder="teeinblue-custom" />
+          <label class="text-[10.5px] font-medium text-slate-600">
+            Tên file
+            <input v-model="customName" class="tib-input mt-0.5 font-mono text-[11px] py-1 px-2" placeholder="teeinblue-custom" />
           </label>
         </div>
-        <p class="break-all font-mono text-[11px] text-slate-600">→ {{ customFilename || '(chưa có tên file)' }}</p>
-        <label class="block text-[11px] font-medium">Mode
-          <select v-model="customMode" class="tib-input mt-0.5 text-xs">
+
+        <p class="break-all font-mono text-[10.5px] text-slate-500">→ {{ customFilename || '(chưa có tên file)' }}</p>
+
+        <label class="block text-[10.5px] font-medium text-slate-600">
+          Mode
+          <select v-model="customMode" class="tib-input mt-0.5 text-[11px] py-1 px-2">
             <option v-for="m in MODES.filter((x) => x !== 'replace')" :key="m" :value="m">{{ modeLabel[m] }}</option>
           </select>
         </label>
-        <textarea v-model="customCode" rows="6" class="tib-input font-mono text-xs" placeholder="Nhập code CSS / JS / Liquid / JSON tại đây…" />
-        <label v-if="customMode === 'create'" class="flex items-center gap-2 text-xs text-slate-700">
-          <input v-model="addReference" type="checkbox" /> Tự link file vào layout/theme.liquid
+
+        <textarea
+          v-model="customCode"
+          rows="6"
+          class="tib-input font-mono text-[11px] leading-relaxed p-2"
+          placeholder="Nhập code CSS / JS / Liquid / JSON tại đây…"
+        />
+
+        <label v-if="customMode === 'create'" class="flex items-center gap-2 text-[11px] text-slate-700 select-none cursor-pointer">
+          <input v-model="addReference" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-0" />
+          <span>Tự link file vào layout/theme.liquid</span>
         </label>
       </div>
     </WorkflowSection>

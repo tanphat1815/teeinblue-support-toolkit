@@ -194,46 +194,111 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   // ---- library filters
   const query = ref('');
   const category = ref('');
-  const themeGroup = ref('All');
+  const themeFilter = ref('All');
+  const pageFilter = ref('All');
+  const appFilter = ref('All');
   const typeFilter = ref('All');
   const showAllThemes = ref(false);
-  const activeTabFilter = ref<string>('all'); // 'all', 'favorites', hoặc tên theme: 'dawn', 'debut'...
+  const activeTabFilter = ref<string>('all'); // 'all', 'favorites'
 
   const categories = computed(() => [...new Set(snippets.value.map((s) => s.category))].sort());
-  const themeGroups = computed(() => {
-    const groups = new Set<string>();
-    for (const s of snippets.value) for (const t of s.themes) groups.add(themeGroupOf(t === '*' ? '' : t));
-    return ['All', ...[...groups].sort()];
+
+  // Lấy danh sách đầy đủ tất cả các theme có trong snippets (viết hoa chữ cái đầu cho đẹp)
+  const availableThemes = computed(() => {
+    const set = new Set<string>();
+    for (const s of snippets.value) {
+      for (const t of s.themes) {
+        if (t && t !== '*') {
+          set.add(t.toLowerCase());
+        }
+      }
+    }
+    return [...set].sort().map((t) => ({
+      value: t,
+      label: t.charAt(0).toUpperCase() + t.slice(1)
+    }));
   });
+
+  // Danh sách các Page thường gặp trong Shopify
+  const PAGE_OPTIONS = [
+    { value: 'All', label: 'All Pages' },
+    { value: 'product', label: 'Product Page' },
+    { value: 'cart', label: 'Cart / Drawer' },
+    { value: 'home', label: 'Home Page' },
+    { value: 'collection', label: 'Collection' },
+    { value: 'global', label: 'Global / Layout' }
+  ];
+
+  // Danh sách 3rd-party Apps & Integrations
+  const APP_OPTIONS = [
+    { value: 'All', label: 'All Apps' },
+    { value: 'upcart', label: 'UpCart' },
+    { value: 'slidecart', label: 'SlideCart' },
+    { value: 'revy', label: 'Revy Upsell' },
+    { value: 'shineon', label: 'ShineOn' },
+    { value: 'the4', label: 'The4 Extensions' },
+    { value: 'other', label: 'Other Apps' }
+  ];
 
   // Đếm số lượng cho các tab filters
   const filterCounts = computed(() => {
     const all = snippets.value.length;
     const fav = snippets.value.filter((s) => favorites.value.includes(s.id)).length;
-    const dawn = snippets.value.filter((s) => s.themes.includes('*') || s.themes.some((t) => /dawn/i.test(t))).length;
-    const debut = snippets.value.filter((s) => s.themes.includes('*') || s.themes.some((t) => /debut/i.test(t))).length;
-    const turbo = snippets.value.filter((s) => s.themes.includes('*') || s.themes.some((t) => /turbo/i.test(t))).length;
-    return { all, fav, dawn, debut, turbo };
+    return { all, fav };
   });
 
   const filtered = computed(() => {
     const q = query.value.trim().toLowerCase();
     const slug = detected.value?.slug || '';
     return snippets.value.filter((s) => {
-      // Tab filter (All, Favorites, hoặc Theme cụ thể)
+      // Tab filter (All, Favorites)
       if (activeTabFilter.value === 'favorites') {
         if (!favorites.value.includes(s.id)) return false;
-      } else if (activeTabFilter.value === 'dawn') {
-        if (!s.themes.includes('*') && !s.themes.some((t) => /dawn/i.test(t))) return false;
-      } else if (activeTabFilter.value === 'debut') {
-        if (!s.themes.includes('*') && !s.themes.some((t) => /debut/i.test(t))) return false;
-      } else if (activeTabFilter.value === 'turbo') {
-        if (!s.themes.includes('*') && !s.themes.some((t) => /turbo/i.test(t))) return false;
+      }
+
+      // Filter theo Theme (hỗ trợ All Themes '*' và theme cụ thể)
+      if (themeFilter.value !== 'All') {
+        const targetTheme = themeFilter.value.toLowerCase();
+        const matchesTheme = s.themes.includes('*') || s.themes.some((t) => t.toLowerCase() === targetTheme);
+        if (!matchesTheme) return false;
+      }
+
+      // Filter theo Page (Product, Cart, Home, Collection, Global)
+      if (pageFilter.value !== 'All') {
+        const fullText = `${s.title} ${s.description || ''} ${s.tags.join(' ')} ${s.targets.map((t) => t.filename).join(' ')}`.toLowerCase();
+        if (pageFilter.value === 'cart') {
+          if (!fullText.includes('cart') && !fullText.includes('drawer')) return false;
+        } else if (pageFilter.value === 'product') {
+          if (!fullText.includes('product') && !fullText.includes('price') && !fullText.includes('variant')) return false;
+        } else if (pageFilter.value === 'home') {
+          if (!fullText.includes('home') && !fullText.includes('index')) return false;
+        } else if (pageFilter.value === 'collection') {
+          if (!fullText.includes('collection')) return false;
+        } else if (pageFilter.value === 'global') {
+          if (!fullText.includes('layout/theme') && !fullText.includes('custom.css') && !fullText.includes('global')) return false;
+        }
+      }
+
+      // Filter theo 3rd-party App
+      if (appFilter.value !== 'All') {
+        const fullText = `${s.title} ${s.description || ''} ${s.tags.join(' ')}`.toLowerCase();
+        if (appFilter.value === 'upcart') {
+          if (!fullText.includes('upcart')) return false;
+        } else if (appFilter.value === 'slidecart') {
+          if (!fullText.includes('slidecart') && !fullText.includes('slide cart')) return false;
+        } else if (appFilter.value === 'revy') {
+          if (!fullText.includes('revy')) return false;
+        } else if (appFilter.value === 'shineon') {
+          if (!fullText.includes('shineon')) return false;
+        } else if (appFilter.value === 'the4') {
+          if (!fullText.includes('the4')) return false;
+        } else if (appFilter.value === 'other') {
+          if (!fullText.includes('app') && !fullText.includes('integration') && !fullText.includes('third-party')) return false;
+        }
       }
 
       if (category.value && s.category !== category.value) return false;
       if (typeFilter.value !== 'All' && s.type !== typeFilter.value && s.type !== 'mixed') return false;
-      if (themeGroup.value !== 'All' && !s.themes.includes('*') && !s.themes.some((t) => themeGroupOf(t) === themeGroup.value)) return false;
       if (!showAllThemes.value && slug && activeTabFilter.value === 'all' && !s.themes.includes('*') && !s.themes.includes(slug)) return false;
       if (!q) return true;
       return `${s.title} ${s.description || ''} ${s.tags.join(' ')}`.toLowerCase().includes(q);
@@ -351,8 +416,16 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     finally { injecting.value = false; confirmOpen.value = false; }
   }
   function resetAll() {
-    clearSelection(); query.value = ''; category.value = ''; themeGroup.value = 'All'; typeFilter.value = 'All';
-    customCode.value = ''; useCustom.value = false;
+    clearSelection();
+    query.value = '';
+    category.value = '';
+    themeFilter.value = 'All';
+    pageFilter.value = 'All';
+    appFilter.value = 'All';
+    typeFilter.value = 'All';
+    activeTabFilter.value = 'all';
+    customCode.value = '';
+    useCustom.value = false;
   }
 
   // ---- undo history
@@ -409,7 +482,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
     reloadAdminTab, reloadingAdminTab,
     favorites, toggleFavorite, activeTabFilter, filterCounts,
-    query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
+    query, category, themeFilter, pageFilter, appFilter, typeFilter, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
     selectedIds, selectedSnippets, toggleSnippet, clearSelection, expandedId, toggleExpand,
     useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
     customFilename, CUSTOM_FOLDERS, MODES,

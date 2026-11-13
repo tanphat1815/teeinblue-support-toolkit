@@ -38,7 +38,9 @@ export type IconName =
   | 'headphones-01'
   | 'check'
   | 'plus'
-  | 'x-close';
+  | 'x-close'
+  | 'layout-alt'
+  | 'package';
 
 const props = withDefaults(
   defineProps<{
@@ -289,6 +291,18 @@ const dimension = computed(() => (typeof props.size === 'number' ? `${props.size
     <path
       v-else-if="name === 'x-close'"
       d="M18 6 6 18M6 6l12 12"
+    />
+
+    <!-- layout-alt / page -->
+    <path
+      v-else-if="name === 'layout-alt'"
+      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Zm0 5h16M9 9v11"
+    />
+
+    <!-- package / app -->
+    <path
+      v-else-if="name === 'package'"
+      d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"
     />
   </svg>
 </template>

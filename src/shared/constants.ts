@@ -10,7 +10,8 @@ export const STORAGE = {
   undo: 'tibk_undo_v1',
   snippetsCache: 'tibk_snippets_cache_v1',
   partnerDashboard: 'tibk_partner_dashboard_v1',
-  favoriteSnippets: 'tibk_favorite_snippets_v1'
+  favoriteSnippets: 'tibk_favorite_snippets_v1',
+  snippetUsageCounts: 'tibk_snippet_usage_counts_v1'
 } as const;
 
 export const PARTNER_DASHBOARDS = [

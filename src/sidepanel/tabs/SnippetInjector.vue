@@ -20,7 +20,7 @@ const {
   admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
   reloadAdminTab, reloadingAdminTab,
   favorites, toggleFavorite, activeTabFilter, filterCounts,
-  query, category, themeFilter, pageFilter, appFilter, typeFilter, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
+  query, category, themeFilter, pageFilter, appFilter, typeFilter, sortBy, usageCounts, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
   selectedIds, toggleSnippet, clearSelection, expandedId, toggleExpand,
   useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
   customFilename, CUSTOM_FOLDERS, MODES,
@@ -86,6 +86,7 @@ function handleViewAllFiltered() {
   pageFilter.value = 'All';
   appFilter.value = 'All';
   typeFilter.value = 'All';
+  sortBy.value = 'default';
   showAllThemes.value = true;
   activeTabFilter.value = 'all';
   toast.info('Đã mở rộng hiển thị toàn bộ snippets.');
@@ -683,6 +684,27 @@ function handleViewAllFiltered() {
               <UntitledIcon name="chevron-down" :size="11" />
             </div>
           </div>
+
+          <!-- 6. Sắp xếp (Sort Alphabet / Usage) -->
+          <div class="relative shrink-0">
+            <select
+              v-model="sortBy"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[110px]"
+              title="Sắp xếp danh sách snippets"
+            >
+              <option value="default" class="bg-white text-slate-800">Sort: Default</option>
+              <option value="alpha-asc" class="bg-white text-slate-800">Tên: A → Z</option>
+              <option value="alpha-desc" class="bg-white text-slate-800">Tên: Z → A</option>
+              <option value="usage-desc" class="bg-white text-slate-800">Dùng nhiều nhất</option>
+              <option value="usage-asc" class="bg-white text-slate-800">Dùng ít nhất</option>
+            </select>
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="arrow-up-down" :size="13" />
+            </div>
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="11" />
+            </div>
+          </div>
         </div>
 
         <label class="flex items-center gap-2 text-xs text-slate-600 pt-0.5">
@@ -744,11 +766,14 @@ function handleViewAllFiltered() {
                 <!-- Info Button mở Drawer chi tiết (Title, Desc, Files, Modes) -->
                 <button
                   type="button"
-                  class="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                  title="Xem nhanh chi tiết snippet & các file tác động"
+                  class="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-0.5"
+                  :title="`Xem chi tiết snippet (Đã inject ${usageCounts[sn.id] || 0} lần)`"
                   @click="openSnippetDrawer(sn)"
                 >
                   <UntitledIcon name="info-circle" :size="13" />
+                  <span v-if="usageCounts[sn.id]" class="text-[9.5px] font-mono text-emerald-600 font-bold">
+                    {{ usageCounts[sn.id] }}
+                  </span>
                 </button>
 
                 <!-- Star Favorite Button -->
@@ -1015,6 +1040,9 @@ function handleViewAllFiltered() {
                 {{ activeDrawerSnippet.themes.includes('*') ? 'All Themes' : activeDrawerSnippet.themes.join(', ') }}
               </span>
               <span class="text-[11px] font-medium text-slate-400">· {{ activeDrawerSnippet.category }}</span>
+              <span v-if="usageCounts[activeDrawerSnippet.id]" class="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                ⚡ Đã inject: {{ usageCounts[activeDrawerSnippet.id] }} lần
+              </span>
             </div>
             <h3 class="mt-1 text-sm font-bold text-slate-900 leading-snug">{{ activeDrawerSnippet.title }}</h3>
           </div>

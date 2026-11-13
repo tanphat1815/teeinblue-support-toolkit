@@ -40,7 +40,8 @@ export type IconName =
   | 'plus'
   | 'x-close'
   | 'layout-alt'
-  | 'package';
+  | 'package'
+  | 'arrow-up-down';
 
 const props = withDefaults(
   defineProps<{
@@ -303,6 +304,12 @@ const dimension = computed(() => (typeof props.size === 'number' ? `${props.size
     <path
       v-else-if="name === 'package'"
       d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"
+    />
+
+    <!-- arrow-up-down / sort -->
+    <path
+      v-else-if="name === 'arrow-up-down'"
+      d="m7 15 5 5 5-5M7 9l5-5 5 5"
     />
   </svg>
 </template>

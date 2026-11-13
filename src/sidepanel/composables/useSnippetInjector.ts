@@ -37,9 +37,15 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const sourceKind = ref<'github' | 'sheet' | 'custom'>('github');
   const partnerId = ref<PartnerDashboardId>('collab');
   const favorites = ref<string[]>([]);
+  const usageCounts = ref<Record<string, number>>({});
 
   async function loadSettings() {
-    const s = await chrome.storage.local.get([STORAGE.settings, STORAGE.partnerDashboard, STORAGE.favoriteSnippets]);
+    const s = await chrome.storage.local.get([
+      STORAGE.settings,
+      STORAGE.partnerDashboard,
+      STORAGE.favoriteSnippets,
+      STORAGE.snippetUsageCounts
+    ]);
     const v = s[STORAGE.settings] as { sourceUrl?: string; markerNote?: string } | undefined;
     if (v?.sourceUrl !== undefined) {
       sourceUrl.value = v.sourceUrl;
@@ -50,7 +56,20 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     if (p && PARTNER_DASHBOARDS.some((d) => d.id === p)) partnerId.value = p;
     const favs = s[STORAGE.favoriteSnippets] as string[] | undefined;
     if (Array.isArray(favs)) favorites.value = favs;
+    const counts = s[STORAGE.snippetUsageCounts] as Record<string, number> | undefined;
+    if (counts && typeof counts === 'object') usageCounts.value = counts;
     detectSourceKind();
+  }
+
+  function incrementUsageCounts(ids: string[]) {
+    if (!ids.length) return;
+    const updated = { ...usageCounts.value };
+    for (const id of ids) {
+      if (!id || id === 'custom') continue;
+      updated[id] = (updated[id] || 0) + 1;
+    }
+    usageCounts.value = updated;
+    chrome.storage.local.set({ [STORAGE.snippetUsageCounts]: updated });
   }
 
   function toggleFavorite(id: string) {
@@ -191,13 +210,14 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     window.open(`https://admin.shopify.com/store/${handle}/themes/${cleanId}`, '_blank');
   }
 
-  // ---- library filters
+  // ---- library filters & sorting
   const query = ref('');
   const category = ref('');
   const themeFilter = ref('All');
   const pageFilter = ref('All');
   const appFilter = ref('All');
   const typeFilter = ref('All');
+  const sortBy = ref<'default' | 'alpha-asc' | 'alpha-desc' | 'usage-desc' | 'usage-asc'>('default');
   const showAllThemes = ref(false);
   const activeTabFilter = ref<string>('all'); // 'all', 'favorites'
 
@@ -250,7 +270,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const filtered = computed(() => {
     const q = query.value.trim().toLowerCase();
     const slug = detected.value?.slug || '';
-    return snippets.value.filter((s) => {
+    const list = snippets.value.filter((s) => {
       // Tab filter (All, Favorites)
       if (activeTabFilter.value === 'favorites') {
         if (!favorites.value.includes(s.id)) return false;
@@ -303,6 +323,32 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
       if (!q) return true;
       return `${s.title} ${s.description || ''} ${s.tags.join(' ')}`.toLowerCase().includes(q);
     });
+
+    // Sắp xếp (Alphabet A-Z / Z-A, Usage High-Low / Low-High, hoặc Default)
+    if (sortBy.value === 'alpha-asc') {
+      return [...list].sort((a, b) => a.title.localeCompare(b.title));
+    }
+    if (sortBy.value === 'alpha-desc') {
+      return [...list].sort((a, b) => b.title.localeCompare(a.title));
+    }
+    if (sortBy.value === 'usage-desc') {
+      return [...list].sort((a, b) => {
+        const countA = usageCounts.value[a.id] || 0;
+        const countB = usageCounts.value[b.id] || 0;
+        if (countB !== countA) return countB - countA;
+        return a.title.localeCompare(b.title);
+      });
+    }
+    if (sortBy.value === 'usage-asc') {
+      return [...list].sort((a, b) => {
+        const countA = usageCounts.value[a.id] || 0;
+        const countB = usageCounts.value[b.id] || 0;
+        if (countA !== countB) return countA - countB;
+        return a.title.localeCompare(b.title);
+      });
+    }
+
+    return list;
   });
 
   // ---- multi-select (mặc định không tick)
@@ -406,6 +452,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
         targets: targets.value
       });
       if (r.status === 'WRITTEN') {
+        incrementUsageCounts(ids);
         toast.success(`Inject thành công vào "${selectedTheme.value.name}"!\n${r.written.map((w) => `• ${w.filename} (${w.mode})`).join('\n')}`);
       } else {
         toast.info(`Không có thay đổi:\n${r.skipped.map((s) => `• ${s.filename}: ${s.reason}`).join('\n')}`);
@@ -423,6 +470,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     pageFilter.value = 'All';
     appFilter.value = 'All';
     typeFilter.value = 'All';
+    sortBy.value = 'default';
     activeTabFilter.value = 'all';
     customCode.value = '';
     useCustom.value = false;
@@ -482,7 +530,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
     reloadAdminTab, reloadingAdminTab,
     favorites, toggleFavorite, activeTabFilter, filterCounts,
-    query, category, themeFilter, pageFilter, appFilter, typeFilter, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
+    query, category, themeFilter, pageFilter, appFilter, typeFilter, sortBy, usageCounts, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
     selectedIds, selectedSnippets, toggleSnippet, clearSelection, expandedId, toggleExpand,
     useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
     customFilename, CUSTOM_FOLDERS, MODES,

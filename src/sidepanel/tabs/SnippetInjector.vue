@@ -602,14 +602,30 @@ function handleViewAllFiltered() {
           </button>
         </div>
 
-        <!-- Hàng 2: Bộ 4 Filter Dropdown chuyên sâu (Page, App/Integration, Category, Type) -->
-        <div class="grid grid-cols-4 gap-1.5">
-          <!-- 1. Filter theo Page (Product, Cart, Home, Collection, Global) -->
-          <div class="relative">
+        <!-- Hàng 2: Bộ Filter Dropdown (Theme, Category, Page, App, Type) cuộn ngang mượt mà -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <!-- 1. Filter Category -->
+          <div class="relative shrink-0">
+            <select
+              v-model="category"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+            >
+              <option value="">Category</option>
+              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+            </select>
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="layers-three" :size="12" />
+            </div>
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
+            </div>
+          </div>
+
+          <!-- 2. Filter theo Page -->
+          <div class="relative shrink-0">
             <select
               v-model="pageFilter"
-              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
-              title="Lọc theo trang hiển thị"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
               <option value="All">Page</option>
               <option value="product">Product</option>
@@ -618,20 +634,19 @@ function handleViewAllFiltered() {
               <option value="collection">Collection</option>
               <option value="global">Global</option>
             </select>
-            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layout-alt" :size="11" />
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="layout-alt" :size="12" />
             </div>
-            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="9" />
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
             </div>
           </div>
 
-          <!-- 2. Filter theo App thứ 3 (UpCart, SlideCart, Revy, etc.) -->
-          <div class="relative">
+          <!-- 3. Filter theo App thứ 3 -->
+          <div class="relative shrink-0">
             <select
               v-model="appFilter"
-              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
-              title="Lọc theo App tích hợp thứ 3"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
               <option value="All">App</option>
               <option value="upcart">UpCart</option>
@@ -640,38 +655,19 @@ function handleViewAllFiltered() {
               <option value="the4">The4</option>
               <option value="other">Other Apps</option>
             </select>
-            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="package" :size="11" />
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="package" :size="12" />
             </div>
-            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="9" />
-            </div>
-          </div>
-
-          <!-- 3. Filter Category Dropdown Pill -->
-          <div class="relative">
-            <select
-              v-model="category"
-              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
-              title="Lọc theo phân loại chức năng"
-            >
-              <option value="">Category</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-            </select>
-            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layers-three" :size="11" />
-            </div>
-            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="9" />
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
             </div>
           </div>
 
-          <!-- 4. Filter Type Dropdown Pill (More / Code type) -->
-          <div class="relative">
+          <!-- 4. Filter Type (Code format) -->
+          <div class="relative shrink-0">
             <select
               v-model="typeFilter"
-              class="h-7.5 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-5.5 pr-4 text-[10.5px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer truncate"
-              title="Lọc theo định dạng file code"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
               <option value="All">Type</option>
               <option value="css">CSS</option>
@@ -680,11 +676,11 @@ function handleViewAllFiltered() {
               <option value="json">JSON</option>
               <option value="mixed">Mixed</option>
             </select>
-            <div class="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="code-02" :size="11" />
+            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
+              <UntitledIcon name="code-02" :size="12" />
             </div>
-            <div class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="9" />
+            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <UntitledIcon name="chevron-down" :size="10" />
             </div>
           </div>
         </div>

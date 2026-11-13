@@ -141,7 +141,7 @@ function handleViewAllFiltered() {
             <div class="flex items-center justify-between">
               <span class="font-semibold text-emerald-900 text-[11px] uppercase tracking-wide flex items-center gap-1.5">
                 <UntitledIcon name="zap" :size="13" class="text-emerald-600" />
-                <span>Cách nhanh nhất: Tải lại tab Admin hiện tại</span>
+                <span>Cách 1: Tải lại tab Admin hiện tại</span>
               </span>
               <span class="rounded bg-emerald-200/80 px-1.5 py-0.2 text-[9.5px] font-bold text-emerald-800 uppercase">Khuyên dùng</span>
             </div>

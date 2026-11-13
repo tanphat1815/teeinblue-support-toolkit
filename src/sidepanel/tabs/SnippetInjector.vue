@@ -553,9 +553,9 @@ function handleViewAllFiltered() {
 
       <!-- Mode 1: Library Snippets -->
       <div v-if="!useCustom" class="space-y-2 pt-1">
-        <!-- Hàng 1: Ô Search snippets bo tròn + Filter Theme + Favorites Button -->
+        <!-- Hàng 1: Ô Search snippets + Favorites Button -->
         <div class="flex items-center gap-1.5">
-          <!-- Ô Search snippets -->
+          <!-- Ô Search snippets bo tròn -->
           <div class="relative min-w-0 flex-1 h-8">
             <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
               <UntitledIcon name="search-sm" :size="13" />
@@ -567,65 +567,65 @@ function handleViewAllFiltered() {
             />
           </div>
 
-          <!-- Filter Theme Dropdown Pill (Hiển thị đầy đủ mọi theme: Dawn, Minimog, Sleek, Ella...) -->
+          <!-- Nút Lọc Favorites Chip gọn gàng -->
+          <button
+            type="button"
+            class="h-8 shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition-all border shadow-2xs"
+            :class="activeTabFilter === 'favorites'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'"
+            @click="activeTabFilter = activeTabFilter === 'favorites' ? 'all' : 'favorites'"
+          >
+            <UntitledIcon
+              :name="activeTabFilter === 'favorites' ? 'star-filled' : 'star'"
+              :size="13"
+              :class="activeTabFilter === 'favorites' ? 'text-white' : 'text-slate-400'"
+            />
+            <span>Favorites ({{ filterCounts.fav }})</span>
+          </button>
+        </div>
+
+        <!-- Hàng 2: Toàn bộ 5 bộ lọc Dropdown (Theme, Category, Page, App, Type) nằm trên thanh cuộn ngang mượt mà -->
+        <div class="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none" style="scrollbar-width: none; -ms-overflow-style: none;">
+          <!-- 1. Filter Theme (Hiển thị đầy đủ mọi theme: Dawn, Minimog, Sleek, Ella...) -->
           <div class="relative shrink-0">
             <select
               v-model="themeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer max-w-[110px] truncate"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[95px]"
             >
               <option value="All" class="bg-white text-slate-800">Theme</option>
               <option v-for="t in availableThemes" :key="t.value" :value="t.value" class="bg-white text-slate-800">{{ t.label }}</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="palette" :size="12" />
+              <UntitledIcon name="palette" :size="13" />
             </div>
             <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
+              <UntitledIcon name="chevron-down" :size="11" />
             </div>
           </div>
 
-          <!-- Nút Lọc Favorites Chip gọn gàng -->
-          <button
-            type="button"
-            class="h-8 shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-all border"
-            :class="activeTabFilter === 'favorites'
-              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-            @click="activeTabFilter = activeTabFilter === 'favorites' ? 'all' : 'favorites'"
-          >
-            <UntitledIcon
-              :name="activeTabFilter === 'favorites' ? 'star-filled' : 'star'"
-              :size="12"
-              :class="activeTabFilter === 'favorites' ? 'text-white' : 'text-slate-500'"
-            />
-            <span>Fav ({{ filterCounts.fav }})</span>
-          </button>
-        </div>
-
-        <!-- Hàng 2: Bộ Filter Dropdown (Category, Page, App, Type) cuộn ngang mượt mà -->
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-          <!-- 1. Filter Category -->
+          <!-- 2. Filter Category -->
           <div class="relative shrink-0">
             <select
               v-model="category"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[105px]"
             >
               <option value="" class="bg-white text-slate-800">Category</option>
               <option v-for="c in categories" :key="c" :value="c" class="bg-white text-slate-800">{{ c }}</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layers-three" :size="12" />
+              <UntitledIcon name="layers-three" :size="13" />
             </div>
             <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
+              <UntitledIcon name="chevron-down" :size="11" />
             </div>
           </div>
 
-          <!-- 2. Filter theo Page -->
+          <!-- 3. Filter theo Page -->
           <div class="relative shrink-0">
             <select
               v-model="pageFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[90px]"
             >
               <option value="All" class="bg-white text-slate-800">Page</option>
               <option value="product" class="bg-white text-slate-800">Product</option>
@@ -635,18 +635,18 @@ function handleViewAllFiltered() {
               <option value="global" class="bg-white text-slate-800">Global</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layout-alt" :size="12" />
+              <UntitledIcon name="layout-alt" :size="13" />
             </div>
             <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
+              <UntitledIcon name="chevron-down" :size="11" />
             </div>
           </div>
 
-          <!-- 3. Filter theo App thứ 3 -->
+          <!-- 4. Filter theo App thứ 3 -->
           <div class="relative shrink-0">
             <select
               v-model="appFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[85px]"
             >
               <option value="All" class="bg-white text-slate-800">App</option>
               <option value="upcart" class="bg-white text-slate-800">UpCart</option>
@@ -656,18 +656,18 @@ function handleViewAllFiltered() {
               <option value="other" class="bg-white text-slate-800">Other Apps</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="package" :size="12" />
+              <UntitledIcon name="package" :size="13" />
             </div>
             <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
+              <UntitledIcon name="chevron-down" :size="11" />
             </div>
           </div>
 
-          <!-- 4. Filter Type (Code format) -->
+          <!-- 5. Filter Type (Code format) -->
           <div class="relative shrink-0">
             <select
               v-model="typeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[85px]"
             >
               <option value="All" class="bg-white text-slate-800">Type</option>
               <option value="css" class="bg-white text-slate-800">CSS</option>
@@ -677,10 +677,10 @@ function handleViewAllFiltered() {
               <option value="mixed" class="bg-white text-slate-800">Mixed</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="code-02" :size="12" />
+              <UntitledIcon name="code-02" :size="13" />
             </div>
             <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="10" />
+              <UntitledIcon name="chevron-down" :size="11" />
             </div>
           </div>
         </div>

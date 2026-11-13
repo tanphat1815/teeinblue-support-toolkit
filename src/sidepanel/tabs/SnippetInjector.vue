@@ -760,34 +760,7 @@ function handleViewAllFiltered() {
                 >
                   <UntitledIcon :name="favorites.includes(sn.id) ? 'star-filled' : 'star'" :size="14" />
                 </button>
-
-                <!-- Chevron collapse/expand inline code -->
-                <button
-                  type="button"
-                  class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-                  title="Xem trước toàn bộ code"
-                  @click="toggleExpand(sn.id)"
-                >
-                  <UntitledIcon :name="expandedId === sn.id ? 'chevron-up' : 'chevron-down'" :size="13" />
-                </button>
               </div>
-            </div>
-
-            <!-- Expanded Code Preview -->
-            <div v-if="expandedId === sn.id" class="mt-2 space-y-1.5 border-t border-slate-100 pt-1.5">
-              <p v-if="sn.description" class="text-xs text-slate-600">{{ sn.description }}</p>
-              <p class="tib-muted text-[10.5px]">tags: {{ sn.tags.join(', ') || '—' }} · themes: {{ sn.themes.join(', ') }}</p>
-              <div v-for="(t, i) in sn.targets" :key="i" class="rounded border bg-slate-50">
-                <div class="flex items-center justify-between px-1.5 py-1 text-[11px]">
-                  <span class="break-all font-mono">{{ t.filename }}</span>
-                  <span class="tib-chip ml-2 bg-slate-200">{{ modeLabel[t.mode] }}</span>
-                </div>
-                <pre class="max-h-32 overflow-auto border-t p-1.5 font-mono text-[11px]"><code>{{ t.code }}</code></pre>
-              </div>
-              <button class="inline-flex items-center gap-1 text-xs text-brand-600 underline hover:text-brand-700" @click="copySnippetCode(sn)">
-                <UntitledIcon name="copy" :size="12" />
-                <span>Copy snippet</span>
-              </button>
             </div>
           </li>
         </ul>
@@ -1058,10 +1031,10 @@ function handleViewAllFiltered() {
               </span>
             </div>
             <pre
-              class="max-h-36 overflow-auto p-2 font-mono text-[11px] text-slate-800 bg-slate-900 text-slate-200 select-all cursor-pointer hover:bg-slate-800 transition-colors"
+              class="max-h-40 overflow-auto p-2.5 font-mono text-[11px] leading-relaxed bg-slate-900 !text-emerald-400 select-all cursor-pointer hover:bg-slate-950 transition-colors border-t border-slate-800"
               title="Click để copy code này"
               @click="copyOne(t.code)"
-            ><code>{{ t.code }}</code></pre>
+            ><code class="!text-emerald-300">{{ t.code }}</code></pre>
           </div>
         </div>
 

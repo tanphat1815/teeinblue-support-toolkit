@@ -571,10 +571,10 @@ function handleViewAllFiltered() {
           <div class="relative shrink-0">
             <select
               v-model="themeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer max-w-[110px] truncate"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6 pr-5 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer max-w-[110px] truncate"
             >
-              <option value="All">Theme</option>
-              <option v-for="t in availableThemes" :key="t.value" :value="t.value">{{ t.label }}</option>
+              <option value="All" class="bg-white text-slate-800">Theme</option>
+              <option v-for="t in availableThemes" :key="t.value" :value="t.value" class="bg-white text-slate-800">{{ t.label }}</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
               <UntitledIcon name="palette" :size="12" />
@@ -602,16 +602,16 @@ function handleViewAllFiltered() {
           </button>
         </div>
 
-        <!-- Hàng 2: Bộ Filter Dropdown (Theme, Category, Page, App, Type) cuộn ngang mượt mà -->
+        <!-- Hàng 2: Bộ Filter Dropdown (Category, Page, App, Type) cuộn ngang mượt mà -->
         <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
           <!-- 1. Filter Category -->
           <div class="relative shrink-0">
             <select
               v-model="category"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
-              <option value="">Category</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+              <option value="" class="bg-white text-slate-800">Category</option>
+              <option v-for="c in categories" :key="c" :value="c" class="bg-white text-slate-800">{{ c }}</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
               <UntitledIcon name="layers-three" :size="12" />
@@ -625,14 +625,14 @@ function handleViewAllFiltered() {
           <div class="relative shrink-0">
             <select
               v-model="pageFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
-              <option value="All">Page</option>
-              <option value="product">Product</option>
-              <option value="cart">Cart/Drawer</option>
-              <option value="home">Home</option>
-              <option value="collection">Collection</option>
-              <option value="global">Global</option>
+              <option value="All" class="bg-white text-slate-800">Page</option>
+              <option value="product" class="bg-white text-slate-800">Product</option>
+              <option value="cart" class="bg-white text-slate-800">Cart/Drawer</option>
+              <option value="home" class="bg-white text-slate-800">Home</option>
+              <option value="collection" class="bg-white text-slate-800">Collection</option>
+              <option value="global" class="bg-white text-slate-800">Global</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
               <UntitledIcon name="layout-alt" :size="12" />
@@ -646,14 +646,14 @@ function handleViewAllFiltered() {
           <div class="relative shrink-0">
             <select
               v-model="appFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
-              <option value="All">App</option>
-              <option value="upcart">UpCart</option>
-              <option value="slidecart">SlideCart</option>
-              <option value="revy">Revy</option>
-              <option value="the4">The4</option>
-              <option value="other">Other Apps</option>
+              <option value="All" class="bg-white text-slate-800">App</option>
+              <option value="upcart" class="bg-white text-slate-800">UpCart</option>
+              <option value="slidecart" class="bg-white text-slate-800">SlideCart</option>
+              <option value="revy" class="bg-white text-slate-800">Revy</option>
+              <option value="the4" class="bg-white text-slate-800">The4</option>
+              <option value="other" class="bg-white text-slate-800">Other Apps</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
               <UntitledIcon name="package" :size="12" />
@@ -667,14 +667,14 @@ function handleViewAllFiltered() {
           <div class="relative shrink-0">
             <select
               v-model="typeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
+              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-6.5 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs"
             >
-              <option value="All">Type</option>
-              <option value="css">CSS</option>
-              <option value="js">JS</option>
-              <option value="liquid">Liquid</option>
-              <option value="json">JSON</option>
-              <option value="mixed">Mixed</option>
+              <option value="All" class="bg-white text-slate-800">Type</option>
+              <option value="css" class="bg-white text-slate-800">CSS</option>
+              <option value="js" class="bg-white text-slate-800">JS</option>
+              <option value="liquid" class="bg-white text-slate-800">Liquid</option>
+              <option value="json" class="bg-white text-slate-800">JSON</option>
+              <option value="mixed" class="bg-white text-slate-800">Mixed</option>
             </select>
             <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
               <UntitledIcon name="code-02" :size="12" />

@@ -61,6 +61,21 @@ function closeSnippetDrawer() {
   activeDrawerSnippet.value = null;
 }
 
+// Drawer bộ lọc (Filter Drawer) & Drawer sắp xếp (Sort Drawer)
+const filterDrawerOpen = ref(false);
+const sortDrawerOpen = ref(false);
+
+// Đếm số lượng tiêu chí filter đang kích hoạt
+const activeFiltersCount = computed(() => {
+  let count = 0;
+  if (themeFilter.value !== 'All') count++;
+  if (category.value) count++;
+  if (pageFilter.value !== 'All') count++;
+  if (appFilter.value !== 'All') count++;
+  if (typeFilter.value !== 'All') count++;
+  return count;
+});
+
 const isConfigured = computed(() => !snippetsError.value && snippets.value.length > 0);
 
 // Ý tưởng A: Step 1 tự động collapse nếu đã có snippets
@@ -554,7 +569,7 @@ function handleViewAllFiltered() {
 
       <!-- Mode 1: Library Snippets -->
       <div v-if="!useCustom" class="space-y-2 pt-1">
-        <!-- Hàng 1: Ô Search snippets + Favorites Button -->
+        <!-- Hàng điều khiển gọn gàng: Ô Search + 3 nút hành động (Filters, Sort, Favorites) -->
         <div class="flex items-center gap-1.5">
           <!-- Ô Search snippets bo tròn -->
           <div class="relative min-w-0 flex-1 h-8">
@@ -568,13 +583,48 @@ function handleViewAllFiltered() {
             />
           </div>
 
-          <!-- Nút Lọc Favorites Chip gọn gàng -->
+          <!-- Nút mở Drawer Bộ lọc (Filter Drawer) -->
           <button
             type="button"
             class="h-8 shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition-all border shadow-2xs"
+            :class="activeFiltersCount > 0
+              ? 'bg-blue-50 text-brand-600 border-blue-300'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'"
+            title="Mở bộ lọc chuyên sâu (Theme, Page, App, Category, Type)"
+            @click="filterDrawerOpen = true"
+          >
+            <UntitledIcon name="filter-funnel" :size="12" :class="activeFiltersCount > 0 ? 'text-brand-600' : 'text-slate-500'" />
+            <span>Filter</span>
+            <span
+              v-if="activeFiltersCount > 0"
+              class="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[9.5px] font-bold text-white ml-0.5"
+            >
+              {{ activeFiltersCount }}
+            </span>
+          </button>
+
+          <!-- Nút mở Drawer Sắp xếp (Sort Drawer) -->
+          <button
+            type="button"
+            class="h-8 shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition-all border shadow-2xs"
+            :class="sortBy !== 'default'
+              ? 'bg-blue-50 text-brand-600 border-blue-300'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'"
+            title="Sắp xếp danh sách (Alphabet, Lượt dùng)"
+            @click="sortDrawerOpen = true"
+          >
+            <UntitledIcon name="arrow-up-down" :size="12" :class="sortBy !== 'default' ? 'text-brand-600' : 'text-slate-500'" />
+            <span>Sort</span>
+          </button>
+
+          <!-- Nút Lọc Favorites Chip gọn gàng -->
+          <button
+            type="button"
+            class="h-8 shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition-all border shadow-2xs"
             :class="activeTabFilter === 'favorites'
               ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
               : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'"
+            title="Xem danh sách snippets yêu thích"
             @click="activeTabFilter = activeTabFilter === 'favorites' ? 'all' : 'favorites'"
           >
             <UntitledIcon
@@ -582,129 +632,51 @@ function handleViewAllFiltered() {
               :size="13"
               :class="activeTabFilter === 'favorites' ? 'text-white' : 'text-slate-400'"
             />
-            <span>Favorites ({{ filterCounts.fav }})</span>
+            <span>Fav ({{ filterCounts.fav }})</span>
           </button>
         </div>
 
-        <!-- Hàng 2: Toàn bộ 5 bộ lọc Dropdown (Theme, Category, Page, App, Type) nằm trên thanh cuộn ngang mượt mà -->
-        <div class="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none" style="scrollbar-width: none; -ms-overflow-style: none;">
-          <!-- 1. Filter Theme (Hiển thị đầy đủ mọi theme: Dawn, Minimog, Sleek, Ella...) -->
-          <div class="relative shrink-0">
-            <select
-              v-model="themeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[95px]"
-            >
-              <option value="All" class="bg-white text-slate-800">Theme</option>
-              <option v-for="t in availableThemes" :key="t.value" :value="t.value" class="bg-white text-slate-800">{{ t.label }}</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="palette" :size="13" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="11" />
-            </div>
-          </div>
+        <!-- Hàng hiển thị trạng thái Filter/Sort đang áp dụng (có nút xóa nhanh) -->
+        <div v-if="activeFiltersCount > 0 || sortBy !== 'default'" class="flex items-center gap-1.5 flex-wrap text-[10.5px] pt-0.5">
+          <span class="text-slate-400 font-medium">Đang lọc:</span>
 
-          <!-- 2. Filter Category -->
-          <div class="relative shrink-0">
-            <select
-              v-model="category"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[105px]"
-            >
-              <option value="" class="bg-white text-slate-800">Category</option>
-              <option v-for="c in categories" :key="c" :value="c" class="bg-white text-slate-800">{{ c }}</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layers-three" :size="13" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="11" />
-            </div>
-          </div>
+          <span v-if="themeFilter !== 'All'" class="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-1.5 py-0.5 font-semibold text-blue-700">
+            <span>Theme: {{ themeFilter }}</span>
+            <button type="button" class="hover:text-red-500" @click="themeFilter = 'All'">×</button>
+          </span>
 
-          <!-- 3. Filter theo Page -->
-          <div class="relative shrink-0">
-            <select
-              v-model="pageFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[90px]"
-            >
-              <option value="All" class="bg-white text-slate-800">Page</option>
-              <option value="product" class="bg-white text-slate-800">Product</option>
-              <option value="cart" class="bg-white text-slate-800">Cart/Drawer</option>
-              <option value="home" class="bg-white text-slate-800">Home</option>
-              <option value="collection" class="bg-white text-slate-800">Collection</option>
-              <option value="global" class="bg-white text-slate-800">Global</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="layout-alt" :size="13" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="11" />
-            </div>
-          </div>
+          <span v-if="pageFilter !== 'All'" class="inline-flex items-center gap-1 rounded-md bg-purple-50 border border-purple-200 px-1.5 py-0.5 font-semibold text-purple-700">
+            <span>Page: {{ pageFilter }}</span>
+            <button type="button" class="hover:text-red-500" @click="pageFilter = 'All'">×</button>
+          </span>
 
-          <!-- 4. Filter theo App thứ 3 -->
-          <div class="relative shrink-0">
-            <select
-              v-model="appFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[85px]"
-            >
-              <option value="All" class="bg-white text-slate-800">App</option>
-              <option value="upcart" class="bg-white text-slate-800">UpCart</option>
-              <option value="slidecart" class="bg-white text-slate-800">SlideCart</option>
-              <option value="revy" class="bg-white text-slate-800">Revy</option>
-              <option value="the4" class="bg-white text-slate-800">The4</option>
-              <option value="other" class="bg-white text-slate-800">Other Apps</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="package" :size="13" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="11" />
-            </div>
-          </div>
+          <span v-if="appFilter !== 'All'" class="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 font-semibold text-emerald-700">
+            <span>App: {{ appFilter }}</span>
+            <button type="button" class="hover:text-red-500" @click="appFilter = 'All'">×</button>
+          </span>
 
-          <!-- 5. Filter Type (Code format) -->
-          <div class="relative shrink-0">
-            <select
-              v-model="typeFilter"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[85px]"
-            >
-              <option value="All" class="bg-white text-slate-800">Type</option>
-              <option value="css" class="bg-white text-slate-800">CSS</option>
-              <option value="js" class="bg-white text-slate-800">JS</option>
-              <option value="liquid" class="bg-white text-slate-800">Liquid</option>
-              <option value="json" class="bg-white text-slate-800">JSON</option>
-              <option value="mixed" class="bg-white text-slate-800">Mixed</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="code-02" :size="13" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="11" />
-            </div>
-          </div>
+          <span v-if="category" class="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 font-semibold text-amber-700">
+            <span>{{ category }}</span>
+            <button type="button" class="hover:text-red-500" @click="category = ''">×</button>
+          </span>
 
-          <!-- 6. Sắp xếp (Sort Alphabet / Usage) -->
-          <div class="relative shrink-0">
-            <select
-              v-model="sortBy"
-              class="h-8 appearance-none rounded-lg border border-slate-200 bg-white pl-7 pr-6 text-[11px] font-semibold text-slate-800 hover:bg-slate-50 focus:border-brand-500 focus:outline-none cursor-pointer whitespace-nowrap shadow-2xs min-w-[110px]"
-              title="Sắp xếp danh sách snippets"
-            >
-              <option value="default" class="bg-white text-slate-800">Sort: Default</option>
-              <option value="alpha-asc" class="bg-white text-slate-800">Tên: A → Z</option>
-              <option value="alpha-desc" class="bg-white text-slate-800">Tên: Z → A</option>
-              <option value="usage-desc" class="bg-white text-slate-800">Dùng nhiều nhất</option>
-              <option value="usage-asc" class="bg-white text-slate-800">Dùng ít nhất</option>
-            </select>
-            <div class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">
-              <UntitledIcon name="arrow-up-down" :size="13" />
-            </div>
-            <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400">
-              <UntitledIcon name="chevron-down" :size="11" />
-            </div>
-          </div>
+          <span v-if="typeFilter !== 'All'" class="inline-flex items-center gap-1 rounded-md bg-slate-100 border border-slate-300 px-1.5 py-0.5 font-semibold text-slate-700">
+            <span>Type: {{ typeFilter.toUpperCase() }}</span>
+            <button type="button" class="hover:text-red-500" @click="typeFilter = 'All'">×</button>
+          </span>
+
+          <span v-if="sortBy !== 'default'" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 font-semibold text-indigo-700">
+            <span>Sort: {{ sortBy === 'alpha-asc' ? 'A→Z' : sortBy === 'alpha-desc' ? 'Z→A' : sortBy === 'usage-desc' ? 'Nhiều nhất' : 'Ít nhất' }}</span>
+            <button type="button" class="hover:text-red-500" @click="sortBy = 'default'">×</button>
+          </span>
+
+          <button
+            type="button"
+            class="text-[10px] font-semibold text-red-600 hover:underline ml-auto"
+            @click="() => { themeFilter = 'All'; category = ''; pageFilter = 'All'; appFilter = 'All'; typeFilter = 'All'; sortBy = 'default'; }"
+          >
+            Xóa hết lọc
+          </button>
         </div>
 
         <label class="flex items-center gap-2 text-xs text-slate-600 pt-0.5">
@@ -1118,6 +1090,179 @@ function handleViewAllFiltered() {
 
     <!-- Modal định dạng JSON chuẩn & hướng dẫn code dài -->
     <SnippetJsonFormatModal :open="jsonFormatModalOpen" @close="jsonFormatModalOpen = false" />
+
+    <!-- Drawer Bộ lọc (Filter Drawer) -->
+    <div
+      v-if="filterDrawerOpen"
+      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all"
+      @click.self="filterDrawerOpen = false"
+    >
+      <div class="max-h-[82vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-3 animate-in slide-in-from-bottom duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div class="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
+            <UntitledIcon name="filter-funnel" :size="16" class="text-brand-600" />
+            <span>Bộ lọc Snippet</span>
+            <span v-if="activeFiltersCount > 0" class="rounded-full bg-brand-500 px-1.5 py-0.2 text-[10px] text-white font-bold">
+              {{ activeFiltersCount }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            @click="filterDrawerOpen = false"
+          >
+            <UntitledIcon name="x-close" :size="16" />
+          </button>
+        </div>
+
+        <!-- 5 Tiêu chí lọc xếp dọc thoáng mắt -->
+        <div class="flex-1 overflow-auto space-y-2.5 pr-0.5">
+          <!-- 1. Theme -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <UntitledIcon name="palette" :size="13" class="text-brand-600" />
+              <span>Theme Shopify ({{ availableThemes.length }})</span>
+            </label>
+            <select
+              v-model="themeFilter"
+              class="tib-input text-xs font-medium"
+            >
+              <option value="All">Tất cả các Theme (All Themes)</option>
+              <option v-for="t in availableThemes" :key="t.value" :value="t.value">{{ t.label }}</option>
+            </select>
+          </div>
+
+          <!-- 2. Page -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <UntitledIcon name="layout-alt" :size="13" class="text-purple-600" />
+              <span>Trang hiển thị (Page)</span>
+            </label>
+            <select
+              v-model="pageFilter"
+              class="tib-input text-xs font-medium"
+            >
+              <option v-for="p in PAGE_OPTIONS" :key="p.value" :value="p.value">{{ p.label }}</option>
+            </select>
+          </div>
+
+          <!-- 3. App -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <UntitledIcon name="package" :size="13" class="text-emerald-600" />
+              <span>App tích hợp thứ 3</span>
+            </label>
+            <select
+              v-model="appFilter"
+              class="tib-input text-xs font-medium"
+            >
+              <option v-for="a in APP_OPTIONS" :key="a.value" :value="a.value">{{ a.label }}</option>
+            </select>
+          </div>
+
+          <!-- 4. Category -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <UntitledIcon name="layers-three" :size="13" class="text-amber-600" />
+              <span>Phân loại chức năng (Category)</span>
+            </label>
+            <select
+              v-model="category"
+              class="tib-input text-xs font-medium"
+            >
+              <option value="">Tất cả Category</option>
+              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <!-- 5. Type (Code format) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <UntitledIcon name="code-02" :size="13" class="text-blue-600" />
+              <span>Định dạng file code (Type)</span>
+            </label>
+            <select
+              v-model="typeFilter"
+              class="tib-input text-xs font-medium"
+            >
+              <option value="All">Tất cả định dạng</option>
+              <option value="css">CSS</option>
+              <option value="js">JS</option>
+              <option value="liquid">Liquid</option>
+              <option value="json">JSON</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Footer hành động Drawer -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-all"
+            @click="() => { themeFilter = 'All'; category = ''; pageFilter = 'All'; appFilter = 'All'; typeFilter = 'All'; }"
+          >
+            Đặt lại bộ lọc
+          </button>
+
+          <button
+            type="button"
+            class="tib-btn-primary px-4 py-1.5 text-xs font-bold"
+            @click="filterDrawerOpen = false"
+          >
+            Áp dụng bộ lọc
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Sắp xếp (Sort Drawer) -->
+    <div
+      v-if="sortDrawerOpen"
+      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all"
+      @click.self="sortDrawerOpen = false"
+    >
+      <div class="max-h-[60vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-3 animate-in slide-in-from-bottom duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div class="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
+            <UntitledIcon name="arrow-up-down" :size="16" class="text-brand-600" />
+            <span>Sắp xếp Snippets</span>
+          </div>
+          <button
+            type="button"
+            class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            @click="sortDrawerOpen = false"
+          >
+            <UntitledIcon name="x-close" :size="16" />
+          </button>
+        </div>
+
+        <!-- Các lựa chọn sắp xếp -->
+        <div class="space-y-1.5">
+          <button
+            v-for="opt in [
+              { value: 'default', label: 'Mặc định (Default)' },
+              { value: 'alpha-asc', label: 'Tên Alphabet: A → Z' },
+              { value: 'alpha-desc', label: 'Tên Alphabet: Z → A' },
+              { value: 'usage-desc', label: 'Được inject nhiều nhất (Tần suất cao → thấp)' },
+              { value: 'usage-asc', label: 'Được inject ít nhất (Tần suất thấp → cao)' }
+            ]"
+            :key="opt.value"
+            type="button"
+            class="w-full flex items-center justify-between rounded-xl border p-2.5 text-xs text-left transition-all"
+            :class="sortBy === opt.value
+              ? 'border-brand-500 bg-blue-50/60 text-brand-700 font-bold shadow-2xs'
+              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium'"
+            @click="() => { sortBy = opt.value as any; sortDrawerOpen = false; }"
+          >
+            <span>{{ opt.label }}</span>
+            <UntitledIcon v-if="sortBy === opt.value" name="check" :size="15" class="text-brand-600 stroke-[3]" />
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- confirm modal -->
     <div v-if="confirmOpen" class="fixed inset-0 z-40 flex items-end bg-black/40 p-3 sm:items-center">

@@ -41,7 +41,8 @@ export type IconName =
   | 'x-close'
   | 'layout-alt'
   | 'package'
-  | 'arrow-up-down';
+  | 'arrow-up-down'
+  | 'filter-funnel';
 
 const props = withDefaults(
   defineProps<{
@@ -310,6 +311,12 @@ const dimension = computed(() => (typeof props.size === 'number' ? `${props.size
     <path
       v-else-if="name === 'arrow-up-down'"
       d="m7 15 5 5 5-5M7 9l5-5 5 5"
+    />
+
+    <!-- filter-funnel -->
+    <path
+      v-else-if="name === 'filter-funnel'"
+      d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"
     />
   </svg>
 </template>

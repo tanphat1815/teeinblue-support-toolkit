@@ -19,6 +19,7 @@ const {
   snippets, source, snippetsError, loadingSnippets, loadSnippets,
   admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
   reloadAdminTab, reloadingAdminTab,
+  favorites, toggleFavorite, activeTabFilter, filterCounts,
   query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
   selectedIds, toggleSnippet, clearSelection, expandedId, toggleExpand,
   useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
@@ -48,6 +49,25 @@ const showHelpTip = ref(false);
 const unlockThemeSelect = ref(false);
 const helpModalOpen = ref(false);
 const jsonFormatModalOpen = ref(false);
+const isEditingSource = ref(false);
+const historyOpen = ref(false);
+
+const isConfigured = computed(() => !!sourceUrl.value && !snippetsError.value && snippets.value.length > 0);
+
+function handleResetAll() {
+  resetAll();
+  toast.success('Đã xóa tất cả lựa chọn.');
+}
+
+function handleViewAllFiltered() {
+  query.value = '';
+  category.value = '';
+  typeFilter.value = 'All';
+  themeGroup.value = 'All';
+  showAllThemes.value = true;
+  activeTabFilter.value = 'all';
+  toast.info('Đã mở rộng hiển thị toàn bộ snippets.');
+}
 </script>
 
 <template>
@@ -323,44 +343,109 @@ const jsonFormatModalOpen = ref(false);
     </div>
 
     <!-- step 1: Source & Configuration -->
-    <WorkflowSection step="1" title="Source & Configuration" subtitle="Chọn nguồn và tải danh sách snippets">
-      <!-- Nguồn dữ liệu -->
-      <div class="flex gap-2">
-        <button class="tib-src-card" :class="sourceKind === 'github' ? 'active' : ''" @click="pickSource('github')">
+    <WorkflowSection step="1" title="Source & Configuration" subtitle="Choose your source and configure settings">
+      <template #action>
+        <span
+          v-if="isConfigured"
+          class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700 shadow-2xs"
+        >
+          <UntitledIcon name="check" :size="11" class="text-emerald-600 stroke-[2.5]" />
+          <span>Configured</span>
+        </span>
+      </template>
+
+      <!-- Nguồn dữ liệu với Badge check tròn ở góc -->
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          class="tib-src-card relative text-left transition-all p-2.5 flex flex-col items-center justify-center text-center"
+          :class="sourceKind === 'github' ? 'active ring-1 ring-brand-500' : ''"
+          @click="pickSource('github')"
+        >
+          <div
+            v-if="sourceKind === 'github'"
+            class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-white shadow-2xs"
+          >
+            <UntitledIcon name="check" :size="10" class="stroke-[3]" />
+          </div>
           <img :src="githubIconUrl" alt="GitHub" class="h-6 w-6 object-contain" />
-          <div class="text-xs font-semibold">GitHub Raw JSON</div>
+          <div class="mt-1 text-xs font-semibold text-slate-800">GitHub Raw JSON</div>
+          <div class="text-[10px] text-slate-500 leading-tight mt-0.5">Load snippets from GitHub repository</div>
         </button>
-        <button class="tib-src-card" :class="sourceKind === 'sheet' ? 'active' : ''" @click="pickSource('sheet')">
+
+        <button
+          type="button"
+          class="tib-src-card relative text-left transition-all p-2.5 flex flex-col items-center justify-center text-center"
+          :class="sourceKind === 'sheet' ? 'active ring-1 ring-brand-500' : ''"
+          @click="pickSource('sheet')"
+        >
+          <div
+            v-if="sourceKind === 'sheet'"
+            class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-white shadow-2xs"
+          >
+            <UntitledIcon name="check" :size="10" class="stroke-[3]" />
+          </div>
           <img :src="googleSheetsIconUrl" alt="Google Sheet" class="h-6 w-6 object-contain" />
-          <div class="text-xs font-semibold">Google Sheet</div>
+          <div class="mt-1 text-xs font-semibold text-slate-800">Google Sheet API</div>
+          <div class="text-[10px] text-slate-500 leading-tight mt-0.5">Load snippets from Google Sheet</div>
         </button>
-        <button class="tib-src-card" :class="sourceKind === 'custom' ? 'active' : ''" @click="pickSource('custom')">
+
+        <button
+          type="button"
+          class="tib-src-card relative text-left transition-all p-2.5 flex flex-col items-center justify-center text-center"
+          :class="sourceKind === 'custom' ? 'active ring-1 ring-brand-500' : ''"
+          @click="pickSource('custom')"
+        >
+          <div
+            v-if="sourceKind === 'custom'"
+            class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-white shadow-2xs"
+          >
+            <UntitledIcon name="check" :size="10" class="stroke-[3]" />
+          </div>
           <img :src="codeFileIconUrl" alt="Custom URL" class="h-6 w-6 object-contain" />
-          <div class="text-xs font-semibold">Custom URL</div>
+          <div class="mt-1 text-xs font-semibold text-slate-800">Custom URL</div>
+          <div class="text-[10px] text-slate-500 leading-tight mt-0.5">Use any public JSON URL</div>
         </button>
       </div>
 
-      <!-- Ô nhập URL và nút tải -->
-      <div class="flex items-center gap-1.5 pt-1">
-        <div class="relative min-w-0 flex-1">
+      <!-- Compact Source URL Bar / Input edit với chiều cao cố định h-9 -->
+      <div v-if="!isEditingSource && sourceUrl" class="flex h-9 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-2.5 text-xs">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <UntitledIcon name="settings-01" :size="13" class="shrink-0 text-slate-500" />
+          <span class="font-medium text-slate-600 shrink-0">Source URL:</span>
+          <span class="truncate font-mono text-[11.5px] text-slate-800" :title="sourceUrl">{{ sourceUrl }}</span>
+        </div>
+        <button
+          type="button"
+          class="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+          @click="isEditingSource = true"
+        >
+          <UntitledIcon name="edit-02" :size="12" />
+          <span>Edit</span>
+        </button>
+      </div>
+
+      <!-- Ô nhập URL và nút tải (chiều cao h-9 đồng nhất, không bị phình to) -->
+      <div v-else class="flex items-center gap-1.5">
+        <div class="relative min-w-0 flex-1 h-9">
           <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
             <UntitledIcon name="link" :size="14" />
           </span>
           <input
             v-model="sourceUrl"
-            class="tib-input !pl-8 font-mono text-xs"
+            class="tib-input !pl-8 !h-9 font-mono text-xs w-full"
             placeholder="https://github.com/… or raw JSON URL"
           />
         </div>
         <button
-          class="tib-btn-primary inline-flex shrink-0 items-center gap-1 px-2.5 py-1.5 text-xs font-semibold"
-          @click="saveSettings"
+          class="tib-btn-primary inline-flex shrink-0 items-center gap-1 px-2.5 h-9 text-xs font-semibold"
+          @click="async () => { await saveSettings(); isEditingSource = false; }"
         >
           <UntitledIcon name="folder-download" :size="14" />
           <span>Lưu & Tải</span>
         </button>
         <button
-          class="tib-btn inline-flex shrink-0 items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-700"
+          class="tib-btn inline-flex shrink-0 items-center gap-1 px-2.5 h-9 text-xs font-medium text-slate-700"
           @click="loadSnippets(true)"
         >
           <UntitledIcon name="refresh-cw" :size="13" :class="loadingSnippets ? 'animate-spin' : ''" />
@@ -408,9 +493,18 @@ const jsonFormatModalOpen = ref(false);
     <!-- step 2: Choose & Prepare Snippets (Library or Custom) -->
     <WorkflowSection
       step="2"
-      title="Select Snippets"
-      :subtitle="useCustom ? 'Code tuỳ chỉnh' : `${filtered.length}/${snippets.length} snippet · đã chọn ${selectedIds.length}`"
+      title="Snippet Library"
+      subtitle="Find and select the snippets you need"
     >
+      <template #action>
+        <span
+          v-if="selectedIds.length"
+          class="rounded-full bg-blue-50 border border-blue-200/80 px-2 py-0.5 text-[10.5px] font-bold text-blue-700 shadow-2xs"
+        >
+          {{ selectedIds.length }} selected
+        </span>
+      </template>
+
       <!-- Sub-tabs chuyển đổi giữa Library và Custom Code -->
       <div class="flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
         <button
@@ -439,47 +533,174 @@ const jsonFormatModalOpen = ref(false);
 
       <!-- Mode 1: Library Snippets -->
       <div v-if="!useCustom" class="space-y-2 pt-1">
+        <!-- Ô Search snippets -->
         <div class="relative">
           <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400">
             <UntitledIcon name="search-sm" :size="14" />
           </span>
           <input v-model="query" class="tib-input !pl-8" placeholder="Search snippets…" />
         </div>
+
+        <!-- 3 Dropdown filters dạng compact -->
         <div class="grid grid-cols-3 gap-1.5">
-          <label class="text-[11px] font-medium">Theme
+          <label class="text-[11px] font-medium text-slate-600">Theme
             <select v-model="themeGroup" class="tib-input mt-0.5 text-xs">
               <option v-for="g in themeGroups" :key="g" :value="g">{{ g === 'All' ? 'All Themes' : g }}</option>
             </select>
           </label>
-          <label class="text-[11px] font-medium">Category
+          <label class="text-[11px] font-medium text-slate-600">Category
             <select v-model="category" class="tib-input mt-0.5 text-xs">
               <option value="">Tất cả</option>
               <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
             </select>
           </label>
-          <label class="text-[11px] font-medium">Type
+          <label class="text-[11px] font-medium text-slate-600">Type
             <select v-model="typeFilter" class="tib-input mt-0.5 text-xs">
               <option>All</option><option>css</option><option>js</option><option>liquid</option><option>json</option><option>mixed</option>
             </select>
           </label>
         </div>
-        <label class="flex items-center gap-2 text-xs text-slate-600"><input v-model="showAllThemes" type="checkbox" /> Hiện cả snippet không khớp theme</label>
 
-        <ul class="max-h-64 space-y-1.5 overflow-auto">
-          <li v-for="sn in filtered" :key="sn.id" class="tib-snip-card" :class="selectedIds.includes(sn.id) ? 'selected' : ''">
+        <!-- Horizontal filter chips (All, Dawn, Debut, Turbo, Favorites) -->
+        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 text-[11px]">
+          <button
+            type="button"
+            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            :class="activeTabFilter === 'all'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+            @click="activeTabFilter = 'all'"
+          >
+            All ({{ filterCounts.all }})
+          </button>
+
+          <button
+            type="button"
+            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            :class="activeTabFilter === 'dawn'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+            @click="activeTabFilter = 'dawn'"
+          >
+            Dawn ({{ filterCounts.dawn }})
+          </button>
+
+          <button
+            type="button"
+            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            :class="activeTabFilter === 'debut'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+            @click="activeTabFilter = 'debut'"
+          >
+            Debut ({{ filterCounts.debut }})
+          </button>
+
+          <button
+            type="button"
+            class="shrink-0 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            :class="activeTabFilter === 'turbo'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+            @click="activeTabFilter = 'turbo'"
+          >
+            Turbo ({{ filterCounts.turbo }})
+          </button>
+
+          <button
+            type="button"
+            class="shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition-all border"
+            :class="activeTabFilter === 'favorites'
+              ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+            @click="activeTabFilter = 'favorites'"
+          >
+            <UntitledIcon :name="activeTabFilter === 'favorites' ? 'star-filled' : 'star'" :size="12" class="text-amber-400" />
+            <span>Favorites ({{ filterCounts.fav }})</span>
+          </button>
+        </div>
+
+        <label class="flex items-center gap-2 text-xs text-slate-600 pt-0.5">
+          <input v-model="showAllThemes" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-0" />
+          <span>Hiện cả snippet không khớp theme</span>
+        </label>
+
+        <!-- Danh sách Snippet với Tags & Nút Favorite đúng thiết kế -->
+        <ul class="max-h-72 space-y-1.5 overflow-auto">
+          <li
+            v-for="sn in filtered"
+            :key="sn.id"
+            class="tib-snip-card transition-all"
+            :class="selectedIds.includes(sn.id) ? 'selected !border-blue-400 !bg-blue-50/40' : ''"
+          >
             <div class="flex items-center gap-2">
-              <input type="checkbox" :checked="selectedIds.includes(sn.id)" @change="toggleSnippet(sn.id)" />
+              <input
+                type="checkbox"
+                class="rounded border-slate-300 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                :checked="selectedIds.includes(sn.id)"
+                @change="toggleSnippet(sn.id)"
+              />
+
+              <!-- Icon code-02 </ > chuẩn Untitled UI -->
+              <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-brand-600 border border-blue-200/60">
+                <UntitledIcon name="code-02" :size="14" />
+              </div>
+
+              <!-- Tiêu đề + description -->
               <button class="min-w-0 flex-1 text-left" @click="toggleSnippet(sn.id)">
-                <div class="truncate text-sm font-medium">{{ sn.title }}</div>
-                <div class="tib-muted truncate">{{ sn.category }} · {{ sn.targets.length }} file · {{ sn.type }}</div>
+                <div class="truncate text-xs font-semibold text-slate-800">{{ sn.title }}</div>
+                <div class="tib-muted truncate text-[11px]">{{ sn.description || `${sn.category} · ${sn.targets.length} file` }}</div>
               </button>
-              <button class="tib-btn px-1.5 py-0.5 text-xs text-slate-500" @click="toggleExpand(sn.id)">
-                <UntitledIcon :name="expandedId === sn.id ? 'chevron-up' : 'chevron-down'" :size="12" />
-              </button>
+
+              <!-- Tags bên phải: Theme + Type + Favorite Icon Star -->
+              <div class="flex items-center gap-1.5 shrink-0" @click.stop>
+                <!-- Tag Theme -->
+                <span
+                  class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                  :class="sn.themes.includes('*') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/60' : 'bg-blue-50 text-blue-700 border border-blue-200/60'"
+                >
+                  {{ sn.themes.includes('*') ? 'All Themes' : (sn.themes[0] || 'Theme') }}
+                </span>
+
+                <!-- Tag Type -->
+                <span
+                  class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                  :class="{
+                    'bg-amber-50 text-amber-700 border border-amber-200/60': sn.type === 'js',
+                    'bg-purple-50 text-purple-700 border border-purple-200/60': sn.type === 'css',
+                    'bg-emerald-50 text-emerald-700 border border-emerald-200/60': sn.type === 'liquid',
+                    'bg-slate-100 text-slate-700 border border-slate-200': sn.type === 'mixed' || sn.type === 'json'
+                  }"
+                >
+                  {{ sn.type }}
+                </span>
+
+                <!-- Star Favorite Button -->
+                <button
+                  type="button"
+                  class="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors"
+                  :class="favorites.includes(sn.id) ? '!text-amber-400' : ''"
+                  :title="favorites.includes(sn.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+                  @click="toggleFavorite(sn.id)"
+                >
+                  <UntitledIcon :name="favorites.includes(sn.id) ? 'star-filled' : 'star'" :size="14" />
+                </button>
+
+                <!-- Chevron collapse/expand -->
+                <button
+                  type="button"
+                  class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                  @click="toggleExpand(sn.id)"
+                >
+                  <UntitledIcon :name="expandedId === sn.id ? 'chevron-up' : 'chevron-down'" :size="13" />
+                </button>
+              </div>
             </div>
-            <div v-if="expandedId === sn.id" class="mt-1.5 space-y-1.5 border-t border-slate-100 pt-1.5">
+
+            <!-- Expanded Code Preview -->
+            <div v-if="expandedId === sn.id" class="mt-2 space-y-1.5 border-t border-slate-100 pt-1.5">
               <p v-if="sn.description" class="text-xs text-slate-600">{{ sn.description }}</p>
-              <p class="tib-muted">tags: {{ sn.tags.join(', ') || '—' }} · themes: {{ sn.themes.join(', ') }}</p>
+              <p class="tib-muted text-[10.5px]">tags: {{ sn.tags.join(', ') || '—' }} · themes: {{ sn.themes.join(', ') }}</p>
               <div v-for="(t, i) in sn.targets" :key="i" class="rounded border bg-slate-50">
                 <div class="flex items-center justify-between px-1.5 py-1 text-[11px]">
                   <span class="break-all font-mono">{{ t.filename }}</span>
@@ -494,12 +715,32 @@ const jsonFormatModalOpen = ref(false);
             </div>
           </li>
         </ul>
-        <div v-if="selectedIds.length" class="flex items-center justify-between rounded bg-blue-50 px-2 py-1.5 text-xs text-blue-800">
-          <span class="inline-flex items-center gap-1.5">
+
+        <!-- Footer Step 2: Selected info + Clear all + View all filtered -->
+        <div class="flex items-center justify-between rounded-lg bg-blue-50/80 px-2.5 py-1.5 text-xs text-blue-900 border border-blue-100">
+          <span class="inline-flex items-center gap-1.5 font-medium">
             <UntitledIcon name="info-circle" :size="14" class="text-blue-600" />
             <span>{{ selectedIds.length }} snippets selected</span>
           </span>
-          <button class="font-medium underline hover:text-blue-950" @click="clearSelection">Clear all</button>
+          <div class="flex items-center gap-3">
+            <button
+              v-if="selectedIds.length"
+              type="button"
+              class="font-semibold text-blue-700 hover:text-blue-900 transition-colors"
+              @click="clearSelection"
+            >
+              Clear all
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+              title="Xóa bộ lọc để xem toàn bộ danh sách snippets"
+              @click="handleViewAllFiltered"
+            >
+              <span>View all</span>
+              <UntitledIcon name="link-external" :size="11" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -536,10 +777,24 @@ const jsonFormatModalOpen = ref(false);
 
     <!-- step 3: Inject to Theme -->
     <WorkflowSection step="3" title="Inject to Theme" :subtitle="`${targets.length} file sẽ xử lý`">
-      <label class="block text-xs font-medium">Ghi chú marker (tuỳ chọn — tên người edit, ticket…)
+      <template #action>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50/80 px-2.5 py-0.5 text-[11px] font-semibold text-blue-800 shadow-2xs hover:bg-blue-100 hover:text-blue-900 transition-colors disabled:opacity-50"
+          :disabled="!canInject || confirmLoading"
+          title="Xem trước sự thay đổi các file trong Theme"
+          @click="openConfirm"
+        >
+          <UntitledIcon name="eye" :size="12" class="text-blue-600" />
+          <span>Preview</span>
+        </button>
+      </template>
+
+      <label class="block text-xs font-medium text-slate-700">Ghi chú marker (tuỳ chọn — tên người edit, ticket…)
         <input v-model="markerNote" class="tib-input mt-1 text-xs" placeholder="vd: Phat – fix cart drawer #123" />
       </label>
-      <p class="tib-muted">Marker: tib-snippet:&lt;id&gt; start · &lt;giờ inject&gt; · &lt;ghi chú&gt; — rollback nhận diện bằng prefix id.</p>
+      <p class="tib-muted text-[11px]">Marker: tib-snippet:&lt;id&gt; start · &lt;giờ inject&gt; · &lt;ghi chú&gt; — rollback nhận diện bằng prefix id.</p>
+
       <div v-if="targets.length" class="space-y-1">
         <div v-for="(t, i) in targets" :key="i" class="flex items-center justify-between gap-2 rounded border bg-white px-2 py-1 text-xs">
           <span class="min-w-0 break-all font-mono">{{ t.filename }}</span>
@@ -550,32 +805,103 @@ const jsonFormatModalOpen = ref(false);
           <span>Copy all</span>
         </button>
       </div>
-      <p v-if="invalidTarget" class="text-xs text-red-600">Filename không hợp lệ hoặc bị chặn: {{ invalidTarget.filename }}</p>
-      <div class="flex gap-2">
-        <button class="tib-btn inline-flex flex-1 items-center justify-center gap-1" @click="resetAll">
-          <UntitledIcon name="refresh-cw" :size="13" />
-          <span>Reset</span>
-        </button>
-        <button class="tib-btn-primary inline-flex flex-[2] items-center justify-center gap-1.5" :disabled="!canInject || injecting" @click="openConfirm">
-          <UntitledIcon name="code-02" :size="14" />
-          <span>{{ injecting ? 'Đang ghi…' : `Inject${selectedTheme ? ` vào “${selectedTheme.name}”` : ''}` }} →</span>
+
+      <p v-if="invalidTarget" class="text-xs text-red-600 font-medium">Filename không hợp lệ hoặc bị chặn: {{ invalidTarget.filename }}</p>
+
+      <!-- Ready to inject Hero Banner (Chính xác như thiết kế) -->
+      <div class="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-blue-50/90 p-2.5 shadow-xs flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
+            <UntitledIcon name="check" :size="16" class="stroke-[3]" />
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-slate-900 text-xs">Ready to inject!</div>
+            <div class="text-[11px] text-slate-600 truncate">
+              {{ targets.length ? `${targets.length} files will be applied to your theme.` : 'Chọn snippet để bắt đầu.' }}
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="tib-btn-primary inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-bold shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
+          :disabled="!canInject || injecting"
+          @click="openConfirm"
+        >
+          <UntitledIcon name="zap" :size="14" class="fill-current" />
+          <span>{{ injecting ? 'Đang ghi…' : `Inject ${selectedIds.length || targets.length} Snippets →` }}</span>
         </button>
       </div>
     </WorkflowSection>
 
-    <!-- history -->
-    <details v-if="undoList.length" class="tib-card p-2.5">
-      <summary class="cursor-pointer text-xs font-medium">Lịch sử inject ({{ undoList.length }})</summary>
-      <ul class="mt-2 space-y-1.5">
-        <li v-for="u in undoList" :key="u.id" class="rounded border p-1.5 text-xs">
-          <div class="break-all font-medium">{{ new Date(u.ts).toLocaleString() }} · {{ (u.snippetIds.length ? u.snippetIds : [u.snippetId]).join(', ') }}</div>
-          <div class="tib-muted break-all">{{ u.themeName }}{{ u.themeRole ? ` (${u.themeRole})` : '' }} · {{ u.createdAt }}</div>
-          <div v-if="u.markerNote" class="tib-muted break-all">Ghi chú: {{ u.markerNote }}</div>
-          <div class="tib-muted break-all">Files: {{ u.files.map((f) => f.filename).join(', ') }}</div>
-          <button class="tib-btn mt-1 px-2 py-0.5 text-xs" @click="doUndo(u)">Undo</button>
+    <!-- Bottom Navigation 4 nút tiện ích (History, Reset, Docs, Support) -->
+    <div class="grid grid-cols-4 gap-1.5 pt-1">
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200/80 bg-white p-2 text-center shadow-2xs hover:border-blue-300 hover:bg-blue-50/50 active:scale-95 transition-all"
+        @click="historyOpen = !historyOpen"
+      >
+        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <UntitledIcon name="clock" :size="15" />
+        </div>
+        <div class="text-[11px] font-bold text-slate-800">History</div>
+        <div class="text-[9.5px] text-slate-500 leading-tight">View past actions</div>
+      </button>
+
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200/80 bg-white p-2 text-center shadow-2xs hover:border-blue-300 hover:bg-blue-50/50 active:scale-95 transition-all"
+        @click="handleResetAll"
+      >
+        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <UntitledIcon name="refresh-cw" :size="14" />
+        </div>
+        <div class="text-[11px] font-bold text-slate-800">Reset</div>
+        <div class="text-[9.5px] text-slate-500 leading-tight">Clear all selections</div>
+      </button>
+
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200/80 bg-white p-2 text-center shadow-2xs hover:border-blue-300 hover:bg-blue-50/50 active:scale-95 transition-all"
+        @click="helpModalOpen = true"
+      >
+        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+          <UntitledIcon name="book-open" :size="15" />
+        </div>
+        <div class="text-[11px] font-bold text-slate-800">Docs</div>
+        <div class="text-[9.5px] text-slate-500 leading-tight">Learn more</div>
+      </button>
+
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200/80 bg-white p-2 text-center shadow-2xs hover:border-blue-300 hover:bg-blue-50/50 active:scale-95 transition-all"
+        @click="openPartnerStores"
+      >
+        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-purple-50 text-purple-600">
+          <UntitledIcon name="headphones-01" :size="15" />
+        </div>
+        <div class="text-[11px] font-bold text-slate-800">Support</div>
+        <div class="text-[9.5px] text-slate-500 leading-tight">Get help</div>
+      </button>
+    </div>
+
+    <!-- history collapsible khi click History button -->
+    <div v-if="historyOpen && undoList.length" class="tib-card p-2.5 animate-in fade-in duration-150">
+      <div class="flex items-center justify-between text-xs font-semibold text-slate-800 border-b border-slate-100 pb-1.5 mb-2">
+        <span>Lịch sử inject ({{ undoList.length }})</span>
+        <button class="text-slate-400 hover:text-slate-600" @click="historyOpen = false">
+          <UntitledIcon name="minus-circle" :size="14" />
+        </button>
+      </div>
+      <ul class="space-y-1.5 max-h-48 overflow-auto">
+        <li v-for="u in undoList" :key="u.id" class="rounded-lg border bg-slate-50/80 p-2 text-xs">
+          <div class="break-all font-semibold text-slate-900">{{ new Date(u.ts).toLocaleString() }} · {{ (u.snippetIds.length ? u.snippetIds : [u.snippetId]).join(', ') }}</div>
+          <div class="tib-muted break-all text-[11px]">{{ u.themeName }}{{ u.themeRole ? ` (${u.themeRole})` : '' }}</div>
+          <div v-if="u.markerNote" class="tib-muted break-all text-[11px]">Ghi chú: {{ u.markerNote }}</div>
+          <button class="tib-btn mt-1.5 px-2 py-0.5 text-xs font-medium text-red-600 border-red-200 hover:bg-red-50" @click="doUndo(u)">Undo rollback</button>
         </li>
       </ul>
-    </details>
+    </div>
 
     <!-- Floating Help Button ở góc dưới phải -->
     <div class="flex justify-end pt-1 pb-2">

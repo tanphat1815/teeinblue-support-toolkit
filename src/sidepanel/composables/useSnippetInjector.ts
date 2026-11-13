@@ -35,15 +35,27 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const markerNote = ref('');
   const sourceKind = ref<'github' | 'sheet' | 'custom'>('github');
   const partnerId = ref<PartnerDashboardId>('collab');
+  const favorites = ref<string[]>([]);
 
   async function loadSettings() {
-    const s = await chrome.storage.local.get([STORAGE.settings, STORAGE.partnerDashboard]);
+    const s = await chrome.storage.local.get([STORAGE.settings, STORAGE.partnerDashboard, STORAGE.favoriteSnippets]);
     const v = s[STORAGE.settings] as { sourceUrl?: string; markerNote?: string } | undefined;
     if (v?.sourceUrl !== undefined) sourceUrl.value = v.sourceUrl;
     if (v?.markerNote !== undefined) markerNote.value = v.markerNote;
     const p = s[STORAGE.partnerDashboard] as PartnerDashboardId | undefined;
     if (p && PARTNER_DASHBOARDS.some((d) => d.id === p)) partnerId.value = p;
+    const favs = s[STORAGE.favoriteSnippets] as string[] | undefined;
+    if (Array.isArray(favs)) favorites.value = favs;
     detectSourceKind();
+  }
+
+  function toggleFavorite(id: string) {
+    if (favorites.value.includes(id)) {
+      favorites.value = favorites.value.filter((x) => x !== id);
+    } else {
+      favorites.value = [...favorites.value, id];
+    }
+    chrome.storage.local.set({ [STORAGE.favoriteSnippets]: favorites.value });
   }
   function setPartnerId(id: PartnerDashboardId) {
     partnerId.value = id;
@@ -176,20 +188,44 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const themeGroup = ref('All');
   const typeFilter = ref('All');
   const showAllThemes = ref(false);
+  const activeTabFilter = ref<string>('all'); // 'all', 'favorites', hoặc tên theme: 'dawn', 'debut'...
+
   const categories = computed(() => [...new Set(snippets.value.map((s) => s.category))].sort());
   const themeGroups = computed(() => {
     const groups = new Set<string>();
     for (const s of snippets.value) for (const t of s.themes) groups.add(themeGroupOf(t === '*' ? '' : t));
     return ['All', ...[...groups].sort()];
   });
+
+  // Đếm số lượng cho các tab filters
+  const filterCounts = computed(() => {
+    const all = snippets.value.length;
+    const fav = snippets.value.filter((s) => favorites.value.includes(s.id)).length;
+    const dawn = snippets.value.filter((s) => s.themes.includes('*') || s.themes.some((t) => /dawn/i.test(t))).length;
+    const debut = snippets.value.filter((s) => s.themes.includes('*') || s.themes.some((t) => /debut/i.test(t))).length;
+    const turbo = snippets.value.filter((s) => s.themes.includes('*') || s.themes.some((t) => /turbo/i.test(t))).length;
+    return { all, fav, dawn, debut, turbo };
+  });
+
   const filtered = computed(() => {
     const q = query.value.trim().toLowerCase();
     const slug = detected.value?.slug || '';
     return snippets.value.filter((s) => {
+      // Tab filter (All, Favorites, hoặc Theme cụ thể)
+      if (activeTabFilter.value === 'favorites') {
+        if (!favorites.value.includes(s.id)) return false;
+      } else if (activeTabFilter.value === 'dawn') {
+        if (!s.themes.includes('*') && !s.themes.some((t) => /dawn/i.test(t))) return false;
+      } else if (activeTabFilter.value === 'debut') {
+        if (!s.themes.includes('*') && !s.themes.some((t) => /debut/i.test(t))) return false;
+      } else if (activeTabFilter.value === 'turbo') {
+        if (!s.themes.includes('*') && !s.themes.some((t) => /turbo/i.test(t))) return false;
+      }
+
       if (category.value && s.category !== category.value) return false;
       if (typeFilter.value !== 'All' && s.type !== typeFilter.value && s.type !== 'mixed') return false;
       if (themeGroup.value !== 'All' && !s.themes.includes('*') && !s.themes.some((t) => themeGroupOf(t) === themeGroup.value)) return false;
-      if (!showAllThemes.value && slug && !s.themes.includes('*') && !s.themes.includes(slug)) return false;
+      if (!showAllThemes.value && slug && activeTabFilter.value === 'all' && !s.themes.includes('*') && !s.themes.includes(slug)) return false;
       if (!q) return true;
       return `${s.title} ${s.description || ''} ${s.tags.join(' ')}`.toLowerCase().includes(q);
     });
@@ -363,6 +399,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     snippets, source, snippetsError, loadingSnippets, loadSnippets,
     admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
     reloadAdminTab, reloadingAdminTab,
+    favorites, toggleFavorite, activeTabFilter, filterCounts,
     query, category, themeGroup, typeFilter, showAllThemes, categories, themeGroups, filtered,
     selectedIds, selectedSnippets, toggleSnippet, clearSelection, expandedId, toggleExpand,
     useCustom, customKind, customFolder, customName, customMode, customCode, addReference,

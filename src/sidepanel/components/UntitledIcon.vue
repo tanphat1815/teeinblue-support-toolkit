@@ -27,7 +27,16 @@ export type IconName =
   | 'copy'
   | 'bug'
   | 'terminal-browser'
-  | 'code-browser';
+  | 'code-browser'
+  | 'star'
+  | 'star-filled'
+  | 'edit-02'
+  | 'settings-01'
+  | 'eye'
+  | 'clock'
+  | 'book-open'
+  | 'headphones-01'
+  | 'check';
 
 const props = withDefaults(
   defineProps<{
@@ -211,6 +220,61 @@ const dimension = computed(() => (typeof props.size === 'number' ? `${props.size
     <path
       v-else-if="name === 'code-browser'"
       d="M22 9H2m12 8.5 2.5-2.5-2.5-2.5m-4 0L7.5 15l2.5 2.5M2 7.8v8.4c0 1.68 0 2.52.327 3.162a3 3 0 0 0 1.311 1.311C4.28 21 5.12 21 6.8 21h10.4c1.68 0 2.52 0 3.162-.327a3 3 0 0 0 1.311-1.311C22 18.72 22 17.88 22 16.2V7.8c0-1.68 0-2.52-.327-3.162a3 3 0 0 0-1.311-1.311C19.72 3 18.88 3 17.2 3H6.8c-1.68 0-2.52 0-3.162.327a3 3 0 0 0-1.311 1.311C2 5.28 2 6.12 2 7.8Z"
+    />
+
+    <!-- star -->
+    <path
+      v-else-if="name === 'star'"
+      d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"
+    />
+
+    <!-- star-filled -->
+    <path
+      v-else-if="name === 'star-filled'"
+      d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"
+      fill="currentColor"
+    />
+
+    <!-- check -->
+    <path
+      v-else-if="name === 'check'"
+      d="M20 6 9 17l-5-5"
+    />
+
+    <!-- edit-02 -->
+    <path
+      v-else-if="name === 'edit-02'"
+      d="M16 3 21 8M4 20h4L20 8l-4-4L4 16v4Z"
+    />
+
+    <!-- settings-01 -->
+    <path
+      v-else-if="name === 'settings-01'"
+      d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-2.4c.1-.5.1-1.1 0-1.6l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.4 1c-.4-.3-.9-.6-1.4-.8l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6c-.5.2-1 .5-1.4.8l-2.4-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6l2.1 1.6c-.1.5-.1 1.1 0 1.6l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.4-1c.4.3.9.6 1.4.8l.4 2.6c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.4-2.6c.5-.2 1-.5 1.4-.8l2.4 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6l-2.1-1.6Z"
+    />
+
+    <!-- eye -->
+    <path
+      v-else-if="name === 'eye'"
+      d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+    />
+
+    <!-- clock -->
+    <path
+      v-else-if="name === 'clock'"
+      d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"
+    />
+
+    <!-- book-open -->
+    <path
+      v-else-if="name === 'book-open'"
+      d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2V3Zm20 0h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7V3Z"
+    />
+
+    <!-- headphones-01 -->
+    <path
+      v-else-if="name === 'headphones-01'"
+      d="M3 18v-6a9 9 0 0 1 18 0v6M21 19a3 3 0 0 1-3 3h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h4v4ZM3 19a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v4Z"
     />
   </svg>
 </template>

@@ -676,11 +676,6 @@ function handleViewAllFiltered() {
                 @change="toggleSnippet(sn.id)"
               />
 
-              <!-- Icon code-02 </ > chuẩn Untitled UI -->
-              <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-brand-600 border border-blue-200/60">
-                <UntitledIcon name="code-02" :size="14" />
-              </div>
-
               <!-- Tiêu đề + description -->
               <button class="min-w-0 flex-1 text-left" @click="toggleSnippet(sn.id)">
                 <div class="truncate text-xs font-semibold text-slate-800">{{ sn.title }}</div>

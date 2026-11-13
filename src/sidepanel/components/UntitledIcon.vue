@@ -37,7 +37,8 @@ export type IconName =
   | 'book-open'
   | 'headphones-01'
   | 'check'
-  | 'plus';
+  | 'plus'
+  | 'x-close';
 
 const props = withDefaults(
   defineProps<{
@@ -282,6 +283,12 @@ const dimension = computed(() => (typeof props.size === 'number' ? `${props.size
     <path
       v-else-if="name === 'plus'"
       d="M12 5v14m-7-7h14"
+    />
+
+    <!-- x-close -->
+    <path
+      v-else-if="name === 'x-close'"
+      d="M18 6 6 18M6 6l12 12"
     />
   </svg>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import type { TabContext } from '@/shared/types';
+import { computed, ref, watch } from 'vue';
+import type { TabContext, Snippet } from '@/shared/types';
 import WorkflowSection from '../components/WorkflowSection.vue';
 import UntitledIcon, { type IconName } from '../components/UntitledIcon.vue';
 import SnippetHelpModal from '../components/SnippetHelpModal.vue';
@@ -52,7 +52,27 @@ const jsonFormatModalOpen = ref(false);
 const isEditingSource = ref(false);
 const historyOpen = ref(false);
 
-const isConfigured = computed(() => !!activeSourceUrl.value && !snippetsError.value && snippets.value.length > 0);
+// Drawer xem chi tiết snippet
+const activeDrawerSnippet = ref<Snippet | null>(null);
+function openSnippetDrawer(sn: Snippet) {
+  activeDrawerSnippet.value = sn;
+}
+function closeSnippetDrawer() {
+  activeDrawerSnippet.value = null;
+}
+
+const isConfigured = computed(() => !snippetsError.value && snippets.value.length > 0);
+
+// Ý tưởng A: Step 1 tự động collapse nếu đã có snippets
+const step1Open = ref(false);
+watch(
+  snippets,
+  (list) => {
+    // Nếu có snippets thì mặc định thu gọn Step 1 lại để nhường trọn không gian cho Step 2
+    step1Open.value = list.length === 0;
+  },
+  { immediate: true }
+);
 
 function handleResetAll() {
   resetAll();
@@ -342,8 +362,13 @@ function handleViewAllFiltered() {
       </div>
     </div>
 
-    <!-- step 1: Source & Configuration -->
-    <WorkflowSection step="1" title="Source & Configuration" subtitle="Choose your source and configure settings">
+    <!-- step 1: Source & Configuration (hỗ trợ v-model tự động collapse khi đã có snippet) -->
+    <WorkflowSection
+      v-model="step1Open"
+      step="1"
+      title="Source & Configuration"
+      :subtitle="step1Open ? 'Choose your source and configure settings' : `${snippets.length} snippets sẵn sàng từ ${sourceKind.toUpperCase()}`"
+    >
       <template #action>
         <span
           v-if="isConfigured"
@@ -664,8 +689,8 @@ function handleViewAllFiltered() {
           <span>Hiện cả snippet không khớp theme</span>
         </label>
 
-        <!-- Danh sách Snippet với Tags & Nút Favorite đúng thiết kế -->
-        <ul class="max-h-72 space-y-1.5 overflow-auto">
+        <!-- Danh sách Snippet với Tags & Nút Favorite đúng thiết kế (tăng chiều cao hiển thị thoáng) -->
+        <ul class="max-h-[460px] space-y-1.5 overflow-auto pr-0.5">
           <li
             v-for="sn in filtered"
             :key="sn.id"
@@ -680,43 +705,19 @@ function handleViewAllFiltered() {
                 @change="toggleSnippet(sn.id)"
               />
 
-              <!-- Tiêu đề + Tooltip chi tiết khi hover -->
-              <div class="min-w-0 flex-1 relative group py-0.5">
+              <!-- Tiêu đề snippet click để chọn/bỏ chọn -->
+              <div class="min-w-0 flex-1 py-0.5">
                 <button
                   type="button"
                   class="w-full text-left truncate text-xs font-semibold text-slate-800 hover:text-brand-600 transition-colors"
+                  :title="sn.title"
                   @click="toggleSnippet(sn.id)"
                 >
                   {{ sn.title }}
                 </button>
-
-                <!-- Tooltip hover hiển thị Title, Description, Files cần sửa -->
-                <div
-                  class="pointer-events-none absolute left-0 bottom-full mb-1.5 z-30 hidden w-64 rounded-lg border border-slate-700/80 bg-slate-900/95 p-2 text-white shadow-xl backdrop-blur-xs group-hover:block transition-all"
-                >
-                  <div class="font-bold text-slate-100 text-[11.5px] leading-tight">{{ sn.title }}</div>
-                  <div v-if="sn.description" class="mt-1 text-[10.5px] text-slate-300 leading-snug line-clamp-3">
-                    {{ sn.description }}
-                  </div>
-                  <div class="mt-1.5 pt-1.5 border-t border-slate-700/60 text-[10px] space-y-0.5">
-                    <div class="text-slate-400 font-medium">Files cần chỉnh sửa ({{ sn.targets.length }}):</div>
-                    <div class="space-y-0.5 font-mono text-[9.5px]">
-                      <div
-                        v-for="(t, ti) in sn.targets"
-                        :key="ti"
-                        class="flex items-center justify-between text-slate-300 truncate"
-                      >
-                        <span class="truncate">{{ t.filename }}</span>
-                        <span class="text-slate-400 ml-1 shrink-0">({{ modeLabel[t.mode] || t.mode }})</span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- Tam giác chỉ xuống -->
-                  <div class="absolute left-4 top-full -mt-px border-4 border-transparent border-t-slate-900/95"></div>
-                </div>
               </div>
 
-              <!-- Tags bên phải: Theme + Type + Favorite Icon Star -->
+              <!-- Tags bên phải: Theme + Type + Info Drawer + Star + Expand -->
               <div class="flex items-center gap-1.5 shrink-0" @click.stop>
                 <!-- Tag Theme -->
                 <span
@@ -739,6 +740,16 @@ function handleViewAllFiltered() {
                   {{ sn.type }}
                 </span>
 
+                <!-- Info Button mở Drawer chi tiết (Title, Desc, Files, Modes) -->
+                <button
+                  type="button"
+                  class="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  title="Xem nhanh chi tiết snippet & các file tác động"
+                  @click="openSnippetDrawer(sn)"
+                >
+                  <UntitledIcon name="info-circle" :size="13" />
+                </button>
+
                 <!-- Star Favorite Button -->
                 <button
                   type="button"
@@ -750,10 +761,11 @@ function handleViewAllFiltered() {
                   <UntitledIcon :name="favorites.includes(sn.id) ? 'star-filled' : 'star'" :size="14" />
                 </button>
 
-                <!-- Chevron collapse/expand -->
+                <!-- Chevron collapse/expand inline code -->
                 <button
                   type="button"
                   class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Xem trước toàn bộ code"
                   @click="toggleExpand(sn.id)"
                 >
                   <UntitledIcon :name="expandedId === sn.id ? 'chevron-up' : 'chevron-down'" :size="13" />
@@ -981,6 +993,102 @@ function handleViewAllFiltered() {
           <button class="tib-btn mt-1.5 px-2 py-0.5 text-xs font-medium text-red-600 border-red-200 hover:bg-red-50" @click="doUndo(u)">Undo rollback</button>
         </li>
       </ul>
+    </div>
+
+    <!-- Drawer xem chi tiết snippet (trượt từ đáy lên / modal nhẹ nhàng) -->
+    <div
+      v-if="activeDrawerSnippet"
+      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all"
+      @click.self="closeSnippetDrawer"
+    >
+      <div class="max-h-[82vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-2.5 animate-in slide-in-from-bottom duration-200">
+        <!-- Header drawer -->
+        <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span
+                class="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                :class="{
+                  'bg-amber-100 text-amber-800': activeDrawerSnippet.type === 'js',
+                  'bg-purple-100 text-purple-800': activeDrawerSnippet.type === 'css',
+                  'bg-emerald-100 text-emerald-800': activeDrawerSnippet.type === 'liquid',
+                  'bg-slate-200 text-slate-800': activeDrawerSnippet.type === 'mixed' || activeDrawerSnippet.type === 'json'
+                }"
+              >
+                {{ activeDrawerSnippet.type }}
+              </span>
+              <span class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800">
+                {{ activeDrawerSnippet.themes.includes('*') ? 'All Themes' : activeDrawerSnippet.themes.join(', ') }}
+              </span>
+              <span class="text-[11px] font-medium text-slate-400">· {{ activeDrawerSnippet.category }}</span>
+            </div>
+            <h3 class="mt-1 text-sm font-bold text-slate-900 leading-snug">{{ activeDrawerSnippet.title }}</h3>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            @click="closeSnippetDrawer"
+          >
+            <UntitledIcon name="x-close" :size="16" />
+          </button>
+        </div>
+
+        <!-- Description -->
+        <div v-if="activeDrawerSnippet.description" class="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-700 leading-relaxed border border-slate-200/60">
+          {{ activeDrawerSnippet.description }}
+        </div>
+
+        <!-- Danh sách targets (file & mode chèn) -->
+        <div class="flex-1 overflow-auto space-y-2">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-800">
+            <span>Files tác động ({{ activeDrawerSnippet.targets.length }})</span>
+            <span class="text-[10px] text-slate-400 font-normal">Click code để copy</span>
+          </div>
+
+          <div
+            v-for="(t, idx) in activeDrawerSnippet.targets"
+            :key="idx"
+            class="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs"
+          >
+            <div class="flex items-center justify-between bg-slate-50/80 px-2.5 py-1.5 border-b border-slate-200/70 text-[11px]">
+              <span class="font-mono font-semibold text-slate-800 truncate" :title="t.filename">{{ t.filename }}</span>
+              <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">
+                {{ modeLabel[t.mode] || t.mode }}
+              </span>
+            </div>
+            <pre
+              class="max-h-36 overflow-auto p-2 font-mono text-[11px] text-slate-800 bg-slate-900 text-slate-200 select-all cursor-pointer hover:bg-slate-800 transition-colors"
+              title="Click để copy code này"
+              @click="copyOne(t.code)"
+            ><code>{{ t.code }}</code></pre>
+          </div>
+        </div>
+
+        <!-- Footer hành động Drawer -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-all shadow-2xs"
+            @click="copySnippetCode(activeDrawerSnippet)"
+          >
+            <UntitledIcon name="copy" :size="13" />
+            <span>Copy toàn bộ snippet</span>
+          </button>
+
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white transition-all shadow-sm"
+            :class="selectedIds.includes(activeDrawerSnippet.id)
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-brand-500 hover:bg-brand-600'"
+            @click="() => { toggleSnippet(activeDrawerSnippet!.id); closeSnippetDrawer(); }"
+          >
+            <UntitledIcon :name="selectedIds.includes(activeDrawerSnippet.id) ? 'minus-circle' : 'check'" :size="13" />
+            <span>{{ selectedIds.includes(activeDrawerSnippet.id) ? 'Bỏ chọn snippet này' : 'Chọn snippet này' }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal giải thích chi tiết kiến trúc & flow (Mở từ nút Docs ở Bottom Navigation) -->

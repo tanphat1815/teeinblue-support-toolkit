@@ -133,8 +133,11 @@ export async function openThemes(storeHandle: string) {
 }
 
 export async function detectTheme(adminTabId: number, themeId: string): Promise<DetectedTheme> {
+  const currentThemes = state(adminTabId).themes || [];
+  const themeObj = currentThemes.find((t) => t.id === themeId);
+  const themeDisplayName = themeObj?.name || '';
   const r = await callAdmin<{ exists: boolean; content: string }>(adminTabId, 'readFile', { themeId, filename: 'config/settings_schema.json' });
-  return r.exists ? parseThemeInfo(r.content) : { name: '', version: '', slug: '' };
+  return r.exists ? parseThemeInfo(r.content, themeDisplayName) : (themeDisplayName ? parseThemeInfo('', themeDisplayName) : { name: '', version: '', slug: '' });
 }
 
 // ---- Undo store

@@ -11,18 +11,108 @@ export function slugify(v: string): string {
   return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-export function parseThemeInfo(raw: string): DetectedTheme {
+/** Danh sách các theme thông dụng để nhận diện qua author, doc url hoặc tên hiển thị */
+const KNOWN_THEME_RULES: { slug: string; name: string; pattern: RegExp }[] = [
+  { slug: 'turbo', name: 'Turbo', pattern: /\b(turbo|out\s*of\s*the\s*sandbox|outofthesandbox)\b/i },
+  { slug: 'dawn', name: 'Dawn', pattern: /\b(dawn)\b/i },
+  { slug: 'debut', name: 'Debut', pattern: /\b(debut)\b/i },
+  { slug: 'debutify', name: 'Debutify', pattern: /\b(debutify)\b/i },
+  { slug: 'ella', name: 'Ella', pattern: /\b(ella|halothemes)\b/i },
+  { slug: 'minimog', name: 'Minimog', pattern: /\b(minimog|thememove|foxkit)\b/i },
+  { slug: 'impact', name: 'Impact', pattern: /\b(impact|maestrooo)\b/i },
+  { slug: 'prestige', name: 'Prestige', pattern: /\b(prestige)\b/i },
+  { slug: 'warehouse', name: 'Warehouse', pattern: /\b(warehouse)\b/i },
+  { slug: 'impulse', name: 'Impulse', pattern: /\b(impulse|archetype)\b/i },
+  { slug: 'motion', name: 'Motion', pattern: /\b(motion)\b/i },
+  { slug: 'streamline', name: 'Streamline', pattern: /\b(streamline)\b/i },
+  { slug: 'broadcast', name: 'Broadcast', pattern: /\b(broadcast|invisible\s*themes)\b/i },
+  { slug: 'kalles', name: 'Kalles', pattern: /\b(kalles|the4)\b/i },
+  { slug: 'unsen', name: 'Unsen', pattern: /\b(unsen)\b/i },
+  { slug: 'gecko', name: 'Gecko', pattern: /\b(gecko)\b/i },
+  { slug: 'pipeline', name: 'Pipeline', pattern: /\b(pipeline)\b/i },
+  { slug: 'shrine', name: 'Shrine', pattern: /\b(shrine)\b/i },
+  { slug: 'symmetry', name: 'Symmetry', pattern: /\b(symmetry|clean\s*canvas)\b/i },
+  { slug: 'focal', name: 'Focal', pattern: /\b(focal)\b/i },
+  { slug: 'craft', name: 'Craft', pattern: /\b(craft)\b/i },
+  { slug: 'sense', name: 'Sense', pattern: /\b(sense)\b/i },
+  { slug: 'craving', name: 'Crave', pattern: /\b(crave)\b/i },
+  { slug: 'refresh', name: 'Refresh', pattern: /\b(refresh)\b/i },
+  { slug: 'ride', name: 'Ride', pattern: /\b(ride)\b/i },
+  { slug: 'colorblock', name: 'Colorblock', pattern: /\b(colorblock)\b/i },
+  { slug: 'taste', name: 'Taste', pattern: /\b(taste)\b/i },
+  { slug: 'studio', name: 'Studio', pattern: /\b(studio)\b/i },
+  { slug: 'origin', name: 'Origin', pattern: /\b(origin)\b/i },
+  { slug: 'spotlight', name: 'Spotlight', pattern: /\b(spotlight)\b/i },
+  { slug: 'publisher', name: 'Publisher', pattern: /\b(publisher)\b/i },
+  { slug: 'vision', name: 'Vision', pattern: /\b(vision|fuel\s*themes)\b/i },
+  { slug: 'enterprise', name: 'Enterprise', pattern: /\b(enterprise)\b/i },
+  { slug: 'stiletto', name: 'Stiletto', pattern: /\b(stiletto|fluorescent)\b/i },
+  { slug: 'concept', name: 'Concept', pattern: /\b(concept)\b/i },
+  { slug: 'sleek', name: 'Sleek', pattern: /\b(sleek)\b/i },
+  { slug: 'zest', name: 'Zest', pattern: /\b(zest)\b/i },
+  { slug: 'wonder', name: 'Wonder', pattern: /\b(wonder)\b/i },
+  { slug: 'xclusive', name: 'Xclusive', pattern: /\b(xclusive)\b/i },
+  { slug: 'xtra', name: 'Xtra', pattern: /\b(xtra)\b/i },
+  { slug: 'avone', name: 'Avone', pattern: /\b(avone|adornthemes)\b/i },
+  { slug: 'eurus', name: 'Eurus', pattern: /\b(eurus|omnithemes)\b/i },
+  { slug: 'horizon', name: 'Horizon', pattern: /\b(horizon)\b/i },
+  { slug: 'vessel', name: 'Vessel', pattern: /\b(vessel)\b/i },
+  { slug: 'unico', name: 'Unico', pattern: /\b(unico)\b/i },
+  { slug: 'expanse', name: 'Expanse', pattern: /\b(expanse)\b/i },
+  { slug: 'capital', name: 'Capital', pattern: /\b(capital|eight\s*theme)\b/i },
+  { slug: 'booster', name: 'Booster', pattern: /\b(booster)\b/i },
+  { slug: 'showtime', name: 'Showtime', pattern: /\b(showtime)\b/i },
+  { slug: 'glozin', name: 'Glozin', pattern: /\b(glozin)\b/i },
+  { slug: 'venue', name: 'Venue', pattern: /\b(venue)\b/i }
+];
+
+export function parseThemeInfo(raw: string, fallbackThemeName = ''): DetectedTheme {
   let name = '';
   let version = '';
+  let author = '';
+  let docUrl = '';
+  let supportUrl = '';
+
   try {
     const arr = JSON.parse(raw.replace(/^\s*\/\*[\s\S]*?\*\//, ''));
     const info = Array.isArray(arr) ? arr.find((x) => x && x.name === 'theme_info') : null;
-    name = info?.theme_name || '';
-    version = info?.theme_version || '';
+    if (info) {
+      name = info.theme_name || '';
+      version = info.theme_version || '';
+      author = info.theme_author || '';
+      docUrl = info.theme_documentation_url || '';
+      supportUrl = info.theme_support_url || '';
+    }
   } catch { /* fallback regex */ }
+
   if (!name) name = raw.match(/"theme_name"\s*:\s*"([^"]+)"/)?.[1] || '';
   if (!version) version = raw.match(/"theme_version"\s*:\s*"([^"]+)"/)?.[1] || '';
-  return { name, version, slug: slugify(name) };
+  if (!author) author = raw.match(/"theme_author"\s*:\s*"([^"]+)"/)?.[1] || '';
+  if (!docUrl) docUrl = raw.match(/"theme_documentation_url"\s*:\s*"([^"]+)"/)?.[1] || '';
+  if (!supportUrl) supportUrl = raw.match(/"theme_support_url"\s*:\s*"([^"]+)"/)?.[1] || '';
+
+  // Kết hợp toàn bộ dấu vân tay để nhận diện gốc theme nếu theme_name bị sửa
+  const corpus = `${name} ${author} ${docUrl} ${supportUrl} ${fallbackThemeName}`.toLowerCase();
+
+  // Kiểm tra xem name gốc có match với theme đã biết không
+  let matchedRule = KNOWN_THEME_RULES.find((r) => r.slug === slugify(name));
+
+  // Nếu name bị sửa (như "TESST", "Custom", "Copy of...") hoặc không khớp, dò qua corpus
+  if (!matchedRule) {
+    matchedRule = KNOWN_THEME_RULES.find((r) => r.pattern.test(corpus));
+  }
+
+  if (matchedRule) {
+    return {
+      name: name && name.toLowerCase() === matchedRule.slug ? name : `${matchedRule.name} (gốc)`,
+      version,
+      slug: matchedRule.slug
+    };
+  }
+
+  // Fallback: nếu không match danh sách chuẩn thì giữ nguyên tên đọc được hoặc fallbackThemeName
+  const finalName = name || fallbackThemeName || 'Unknown';
+  return { name: finalName, version, slug: slugify(finalName) };
 }
 
 function commentPair(filename: string): [string, string] | null {

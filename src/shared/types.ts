@@ -94,10 +94,18 @@ export interface UndoSummary {
 export interface UndoFileResult { filename: string; reason?: string }
 export interface UndoResult { restored: string[]; deleted: string[]; manual: UndoFileResult[] }
 
+export interface PreviewTargetDetail {
+  snippetId: string;
+  action: 'CREATE' | 'APPEND' | 'INSERT' | 'REPLACE' | 'SKIP';
+  detail: string;
+  line: number | null;
+}
+
 export interface PreviewRow {
   filename: string; exists: boolean;
-  action: 'CREATE' | 'APPEND' | 'INSERT' | 'REPLACE' | 'SKIP';
+  action: 'CREATE' | 'APPEND' | 'INSERT' | 'REPLACE' | 'SKIP' | 'MIXED';
   detail: string; line: number | null; snippetIds: string[];
+  targets?: PreviewTargetDetail[];
 }
 
 export type Envelope<T> = { ok: true; data: T } | { ok: false; error: string };

@@ -42,8 +42,15 @@ const actionIconMap: Record<string, { icon: IconName; color: string }> = {
   INSERT: { icon: 'alert-triangle', color: 'text-amber-500' },
   APPEND: { icon: 'alert-triangle', color: 'text-amber-500' },
   REPLACE: { icon: 'alert-circle', color: 'text-orange-500' },
-  SKIP: { icon: 'minus-circle', color: 'text-slate-400' }
+  SKIP: { icon: 'minus-circle', color: 'text-slate-400' },
+  MIXED: { icon: 'help-circle', color: 'text-blue-500' }
 };
+
+function getSnippetTitle(id: string): string {
+  if (id.startsWith('custom')) return 'Code tuỳ chỉnh (Custom)';
+  const s = snippets.value.find((item) => item.id === id);
+  return s ? s.title : id;
+}
 
 const showHelpTip = ref(false);
 const unlockThemeSelect = ref(false);
@@ -1277,17 +1284,58 @@ function handleViewAllFiltered() {
         <p v-if="confirmLoading" class="tib-muted">Đang đọc nội dung theme để tính preview…</p>
         <p v-if="confirmError" class="tib-error">{{ confirmError }}</p>
         <ul v-if="!confirmLoading && !confirmError" class="space-y-1.5">
-          <li v-for="(r, i) in confirmRows" :key="i" class="rounded border p-1.5 text-xs">
+          <li v-for="(r, i) in confirmRows" :key="i" class="rounded border p-2 text-xs bg-slate-50/50">
             <div class="flex items-center gap-1.5">
               <UntitledIcon
                 :name="actionIconMap[r.action]?.icon || 'minus-circle'"
                 :size="14"
                 :class="actionIconMap[r.action]?.color || 'text-slate-400'"
               />
-              <span class="break-all font-mono font-medium">{{ r.filename }}</span>
+              <span class="break-all font-mono font-semibold text-slate-800">{{ r.filename }}</span>
+              <span
+                class="ml-auto px-1.5 py-0.2 rounded text-[10px] font-bold tracking-wider"
+                :class="{
+                  'bg-emerald-100 text-emerald-700': r.action === 'CREATE',
+                  'bg-amber-100 text-amber-700': r.action === 'INSERT' || r.action === 'APPEND',
+                  'bg-orange-100 text-orange-700': r.action === 'REPLACE',
+                  'bg-slate-200 text-slate-600': r.action === 'SKIP',
+                  'bg-blue-100 text-blue-700': r.action === 'MIXED',
+                }"
+              >{{ r.action }}</span>
             </div>
-            <div class="mt-0.5 text-slate-600">{{ r.action }} — {{ r.detail }}</div>
-            <div class="tib-muted">Từ snippet: {{ r.snippetIds.join(', ') || '—' }}{{ r.exists ? '' : ' · file chưa tồn tại' }}</div>
+
+            <!-- Nếu có chi tiết từng snippet tác động lên file -->
+            <div v-if="r.targets && r.targets.length > 1" class="mt-1.5 space-y-1 pl-1">
+              <div v-for="(tg, tgIdx) in r.targets" :key="tgIdx" class="flex items-start gap-1.5 text-[11px] rounded bg-white p-1.5 border border-slate-100">
+                <UntitledIcon
+                  :name="actionIconMap[tg.action]?.icon || 'minus-circle'"
+                  :size="12"
+                  :class="actionIconMap[tg.action]?.color || 'text-slate-400'"
+                  class="mt-0.5 shrink-0"
+                />
+                <div class="min-w-0 flex-1">
+                  <div class="font-medium text-slate-700 flex items-center gap-1">
+                    <span>{{ getSnippetTitle(tg.snippetId) }}</span>
+                    <span class="text-[10px] text-slate-400 font-mono">({{ tg.snippetId }})</span>
+                  </div>
+                  <div :class="tg.action === 'SKIP' ? 'text-amber-700' : 'text-slate-600'">
+                    <span class="font-semibold">{{ tg.action }}:</span> {{ tg.detail }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trường hợp đơn lẻ (1 snippet tác động lên file) -->
+            <div v-else class="mt-1 text-slate-600">
+              <div :class="r.action === 'SKIP' ? 'text-amber-700' : 'text-slate-600'">
+                {{ r.detail }}
+              </div>
+              <div class="tib-muted mt-0.5">
+                Từ snippet: <span class="font-medium text-slate-700">{{ getSnippetTitle(r.snippetIds[0]) }}</span>
+                <span class="font-mono text-slate-400"> ({{ r.snippetIds.join(', ') || '—' }})</span>
+                {{ r.exists ? '' : ' · file chưa tồn tại (sẽ tạo)' }}
+              </div>
+            </div>
           </li>
         </ul>
         <p v-if="markerNote.trim()" class="tib-muted break-all">Marker note: {{ markerNote.trim() }}</p>

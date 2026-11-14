@@ -162,7 +162,7 @@ export async function listUndo(storeHandle: string): Promise<UndoSummary[]> {
 
 // ---- Preview (đọc content hiện tại, chạy planWrite KHÔNG ghi) — dòng chỉ là ước lượng
 export async function previewInject(adminTabId: number, themeId: string, targets: { filename: string; mode: any; code: string; snippetId?: string }[]): Promise<PreviewRow[]> {
-  const rows: PreviewRow[] = [];
+  const rows: { filename: string; exists: boolean; action: 'CREATE' | 'APPEND' | 'INSERT' | 'REPLACE' | 'SKIP'; detail: string; line: number | null; snippetId: string }[] = [];
   const cache = new Map<string, { exists: boolean; content: string }>();
   const lineOf = (content: string, idx: number) => content.slice(0, idx).split('\n').length;
   for (const t of targets) {
@@ -175,10 +175,10 @@ export async function previewInject(adminTabId: number, themeId: string, targets
     const sid = t.snippetId || '';
     const plan = planWrite({ current: cur.content, exists: cur.exists, mode: t.mode, filename: t.filename, code: t.code, snippetId: sid });
     if (plan.skipped) {
-      rows.push({ filename: t.filename, exists: cur.exists, action: 'SKIP', detail: plan.reason || 'Skipped.', line: null, snippetIds: [sid] });
+      rows.push({ filename: t.filename, exists: cur.exists, action: 'SKIP', detail: plan.reason || 'Skipped.', line: null, snippetId: sid });
       continue;
     }
-    let action: PreviewRow['action'] = 'APPEND';
+    let action: 'CREATE' | 'APPEND' | 'INSERT' | 'REPLACE' | 'SKIP' = 'APPEND';
     let line: number | null = null;
     let detail = plan.resolvedMode;
     if (plan.resolvedMode === 'create' && !cur.exists) { action = 'CREATE'; detail = 'File chưa tồn tại — sẽ tạo mới.'; }
@@ -191,14 +191,43 @@ export async function previewInject(adminTabId: number, themeId: string, targets
       else { action = 'APPEND'; line = cur.content ? cur.content.split('\n').length + 1 : 1; detail = `Nối vào cuối file (≈ dòng ${line}, ước lượng).`; }
     }
     cache.set(t.filename, { exists: true, content: plan.content });
-    rows.push({ filename: t.filename, exists: cur.exists, action, detail, line, snippetIds: [sid] });
+    rows.push({ filename: t.filename, exists: cur.exists, action, detail, line, snippetId: sid });
   }
-  // gộp các target cùng filename thành 1 dòng
+
+  // Gộp các target cùng filename thành 1 dòng, nhưng giữ chi tiết targets theo từng snippet
   const merged = new Map<string, PreviewRow>();
   for (const r of rows) {
+    const targetItem = { snippetId: r.snippetId, action: r.action, detail: r.detail, line: r.line };
     const e = merged.get(r.filename);
-    if (!e) merged.set(r.filename, { ...r, snippetIds: [...r.snippetIds] });
-    else e.snippetIds.push(...r.snippetIds.filter((s) => !e.snippetIds.includes(s)));
+    if (!e) {
+      merged.set(r.filename, {
+        filename: r.filename,
+        exists: r.exists,
+        action: r.action,
+        detail: r.detail,
+        line: r.line,
+        snippetIds: [r.snippetId],
+        targets: [targetItem]
+      });
+    } else {
+      if (!e.snippetIds.includes(r.snippetId)) e.snippetIds.push(r.snippetId);
+      if (!e.targets) e.targets = [];
+      e.targets.push(targetItem);
+
+      // Nếu có sự khác nhau về action giữa các snippet tác động lên cùng 1 file
+      const allActions = new Set(e.targets.map((t) => t.action));
+      if (allActions.size > 1) {
+        e.action = 'MIXED';
+        const skipCount = e.targets.filter((t) => t.action === 'SKIP').length;
+        const actCount = e.targets.length - skipCount;
+        e.detail = `${actCount} thay đổi, ${skipCount} bỏ qua (xem chi tiết từng snippet bên dưới)`;
+      } else {
+        e.action = r.action;
+        if (e.targets.length > 1) {
+          e.detail = e.targets.map((t) => `${t.detail} (${t.snippetId})`).join('; ');
+        }
+      }
+    }
   }
   return [...merged.values()];
 }

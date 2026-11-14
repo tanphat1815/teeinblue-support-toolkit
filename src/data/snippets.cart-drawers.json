@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T14:41:57.038Z",
+  "updatedAt": "2026-11-13T22:26:17.187Z",
   "snippets": [
     {
       "id": "cart-drawer-avone",
@@ -271,6 +271,169 @@
           "filename": "layout/theme.liquid",
           "mode": "before-body",
           "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  setTimeout(() => {\n    document.querySelectorAll('.upcart-product-tile, .upcart-item').forEach(tile => {\n      const img = tile.querySelector('img');\n      const customImg = tile.querySelector('[data-property*=\"customization_image\"], [data-property*=\"preview\"]');\n      if (img && customImg && customImg.textContent) {\n        img.src = customImg.textContent.trim();\n      }\n    });\n  }, 800);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-concept",
+      "title": "Concept - Re-render Cart Drawer sau khi Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Cập nhật cart-drawer theme Concept sau khi thêm vào giỏ (Gồm Cách 1: PubSub ajaxProduct, Cách 2: Ghi đè method onCartUpdate trong cart.js).",
+      "type": "js",
+      "themes": [
+        "concept"
+      ],
+      "tags": [
+        "concept",
+        "cart",
+        "drawer",
+        "pubsub"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1 - Khuyên dùng]: Dùng theme.pubsub và trigger cart:bundled-sections\n// ==========================================================\nwindow.tib_custom_cart = window.tib_custom_cart || {};\ntib_custom_cart.getSectionInnerHTML = function(html, selector) {\n  return new DOMParser().parseFromString(html, 'text/html').querySelector(selector || '.shopify-section')?.innerHTML;\n};\ntib_custom_cart.getSectionsToRender = function() {\n  return [{ id: 'cart-drawer', section: 'cart-drawer', selector: '.drawer__inner' }];\n};\ntib_custom_cart.renderContents = function(parsedState) {\n  tib_custom_cart.getSectionsToRender().forEach((section) => {\n    const sectionElement = section.selector ? document.querySelector(section.selector) : document.getElementById(section.id);\n    if (sectionElement) {\n      sectionElement.innerHTML = tib_custom_cart.getSectionInnerHTML(parsedState[section.id], section.selector);\n    }\n  });\n};\ntib_custom_cart.cartAdded = async function() {\n  const cart = document.querySelector('cart-drawer');\n  let sectionsToRender = tib_custom_cart.getSectionsToRender().map((section) => section.id).join(',');\n  const sections = await fetch('?sections=' + sectionsToRender).then(response => response.json());\n  let cartContent = await fetch((window.Shopify?.routes?.root || '/') + 'cart.js').then(response => response.json());\n  let sectionsToBundle = [];\n  document.documentElement.dispatchEvent(new CustomEvent('cart:bundled-sections', { bubbles: true, detail: { sections: sectionsToBundle } }));\n  const cartJson = await (await fetch(window.theme?.routes?.cart_url || '/cart', { ...(window.theme?.utils?.fetchConfig ? window.theme.utils.fetchConfig() : {}) })).json();\n  let bundleKey = sectionsToBundle[0];\n  if (bundleKey) {\n    let sectionKey = bundleKey.split('__')[1];\n    cartJson.sections = { [bundleKey]: sections[sectionKey] };\n  }\n  if (window.theme?.pubsub) {\n    theme.pubsub.publish(theme.pubsub.PUB_SUB_EVENTS.cartUpdate, { cart: cartJson });\n  }\n  document.dispatchEvent(new CustomEvent('ajaxProduct:added', { detail: { product: cartJson } }));\n  if (cart && typeof cart.show === 'function') { cart.show(); }\n};\n\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  tib_custom_cart.cartAdded();\n});\n\n/*\n// ==========================================================\n// [CÁCH 2 - Dành cho file assets/cart.js phiên bản mới của Concept]:\n// Chèn vào method onCartUpdate(event) của theme:\n// ==========================================================\nconst tibSectionId = document.querySelector('cart-drawer');\nconst sectionToRender = new DOMParser().parseFromString(event.cart.sections[this.sectionId != 'cart-drawer' ? this.sectionId : tibSectionId?.getAttribute('data-section-id')], 'text/html');\nconst miniCart = document.querySelector(`#MiniCart-${this.sectionId}`) || document.querySelector(`#MiniCart-${tibSectionId?.getAttribute('data-section-id')}`);\nif (miniCart) {\n  const updatedElement = sectionToRender.querySelector(`#MiniCart-${this.sectionId}`) || sectionToRender.querySelector('#MiniCart-cart-drawer') || sectionToRender.querySelector(`#MiniCart-${tibSectionId?.getAttribute('data-section-id')}`);\n  if (updatedElement) { miniCart.innerHTML = updatedElement.innerHTML; }\n}\n*/\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-glozin",
+      "title": "Glozin - Re-render Cart Notification / Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added, fetch sections và mở drawer giỏ hàng theme Glozin.",
+      "type": "js",
+      "themes": [
+        "glozin"
+      ],
+      "tags": [
+        "glozin",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function() {\n  const drawer = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  fetch('/cart.json')\n    .then(res => res.json())\n    .then(data => {\n      if (drawer && typeof drawer.renderContents === 'function') {\n        fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n          .then(r => r.json())\n          .then(sections => drawer.renderContents({ key: data.items[0]?.key, sections }));\n        if (typeof drawer.open === 'function') drawer.open();\n      }\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-venue",
+      "title": "Venue - Kích hoạt Ajax Cart & Mở Popup giỏ hàng",
+      "category": "Update Cart Count",
+      "description": "Gọi ajaxCart.load() và kích hoạt theme.mfpOpen('cart') mở popup giỏ hàng theme Venue.",
+      "type": "js",
+      "themes": [
+        "venue"
+      ],
+      "tags": [
+        "venue",
+        "ajaxcart",
+        "cart",
+        "popup"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  if (typeof window.ajaxCart !== 'undefined' && typeof window.ajaxCart.load === 'function') {\n    window.ajaxCart.load();\n  }\n  if (typeof window.theme !== 'undefined' && typeof window.theme.mfpOpen === 'function') {\n    window.theme.mfpOpen('cart');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-universal-master",
+      "title": "Universal Cart Drawer Refresh (Tương thích hơn 15 Theme & App)",
+      "category": "Update Cart Count",
+      "description": "Hàm cập nhật tổng hợp đa năng: tự động nhận diện API của wetheme, refreshCart, ajaxCart, Monster Cart, SlideCart, UpCart, CartJS, Minimog và Web Components.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "universal",
+        "cart",
+        "drawer",
+        "wetheme",
+        "monster",
+        "slidecart",
+        "upcart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nconst isFunction = (val) => typeof val === 'function';\n\nconst updateDrawerCartsUniversal = (updatedCart) => {\n  try {\n    if (isFunction(window.wetheme?.updateCartDrawer)) window.wetheme.updateCartDrawer(updatedCart);\n    if (isFunction(window.refreshCart)) window.refreshCart(updatedCart);\n    if (isFunction(window.ajaxCart?.load)) window.ajaxCart.load();\n    if (isFunction(window.monster_setCartItems) && updatedCart?.items?.length) window.monster_setCartItems(updatedCart.items);\n    if (isFunction(window.updateCartDrawerUI)) window.updateCartDrawerUI();\n    if (isFunction(window.cart?.updateCart)) {\n      window.cart.updateCart();\n      if (isFunction(window.cart?.toggleCartDropdown)) window.cart.toggleCartDropdown();\n    }\n    if (isFunction(window.SLIDECART_UPDATE)) window.SLIDECART_UPDATE();\n    if (isFunction(window.HS_SLIDE_CART_UPDATE)) window.HS_SLIDE_CART_UPDATE();\n    if (isFunction(window.upcartRegisterAddToCart)) window.upcartRegisterAddToCart();\n    if (isFunction(window.CartJS?.cart?.update)) window.CartJS.cart.update(updatedCart);\n    if (isFunction(window.monster_refresh)) window.monster_refresh();\n    if (isFunction(window.MinimogTheme?.Cart?.renderNewCart)) window.MinimogTheme.Cart.renderNewCart();\n    if (isFunction(window.theme?.miniCart?.updateElements)) {\n      window.theme.miniCart.updateElements();\n      if (isFunction(window.theme?.miniCart?.generateCart)) window.theme.miniCart.generateCart();\n    }\n  } catch (e) {\n    console.error('Universal cart window method update failed:', e);\n  }\n\n  // Trigger các custom event phổ biến\n  try {\n    document.dispatchEvent(new CustomEvent('cart:build'));\n    document.dispatchEvent(new CustomEvent('cartdrawer:refresh'));\n    document.dispatchEvent(new CustomEvent('dispatch:cart-drawer:refresh'));\n    document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n  } catch (e) {\n    console.error('Universal cart custom event failed:', e);\n  }\n};\n\ndocument.addEventListener('teeinblue-event-after-cart-added', async function() {\n  try {\n    const updatedCart = await (await fetch('/cart.js')).json();\n    updateDrawerCartsUniversal(updatedCart);\n  } catch (err) {\n    console.error('Error fetching cart:', err);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "app-xboost-cart-drawer-upsell",
+      "title": "Xboost Cart Drawer Upsell - Thay thumbnail sản phẩm",
+      "category": "Theme Integration",
+      "description": "Lắng nghe sự kiện xboost-open-cart của app Xboost và tự động cập nhật ảnh customization_image trong giỏ hàng.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "xboost",
+        "upsell",
+        "cart",
+        "thumbnail"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nwindow.addEventListener('xboost-open-cart', function () {\n  setTimeout(function() {\n    fetch('/cart.js')\n      .then(response => response.json())\n      .then(data => {\n        data.items.forEach((item, index) => {\n          if (item.properties && item.properties.customization_image) {\n            const itemElement = document.querySelectorAll('.xb-cart-item')[index];\n            if (itemElement) {\n              const imageElement = itemElement.querySelector('img');\n              if (imageElement) imageElement.src = item.properties.customization_image;\n            }\n          }\n        });\n      });\n  }, 1000);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "app-monster-cart-drawer-upsell",
+      "title": "Monster Cart Upsell - Cập nhật thumbnail giỏ hàng",
+      "category": "Theme Integration",
+      "description": "Tự động thay đổi hình ảnh trong cart drawer của app Monster Upsell bằng đường link customization của Teeinblue.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "monster-cart",
+        "upsell",
+        "thumbnail",
+        "cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('DOMContentLoaded', function () {\n  function updateMonsterCartImages() {\n    fetch('/cart.js')\n      .then(response => response.json())\n      .then(data => {\n        const cartImages = document.querySelectorAll('.monster-cart-item img');\n        data.items.forEach((item, index) => {\n          if (item.properties && item.properties.customization_image && cartImages[index]) {\n            cartImages[index].src = item.properties.customization_image;\n          }\n        });\n      });\n  }\n  document.addEventListener('teeinblue-event-after-cart-added', function() {\n    setTimeout(updateMonsterCartImages, 800);\n  });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "app-aov-cart-drawer-integration",
+      "title": "AOV Cart Drawer - Tích hợp thumbnail & trigger mở giỏ",
+      "category": "Theme Integration",
+      "description": "Lắng nghe sự kiện thêm vào giỏ và tự động thay thế ảnh customization cho app AOV Cart Drawer.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "aov-cart",
+        "cart-drawer",
+        "thumbnail",
+        "app"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  setTimeout(() => {\n    fetch('/cart.js')\n      .then(res => res.json())\n      .then(cart => {\n        cart.items.forEach((item, idx) => {\n          if (item.properties?._customization_image || item.properties?.customization_image) {\n            const imgUrl = item.properties._customization_image || item.properties.customization_image;\n            const itemRows = document.querySelectorAll('.aov-cart-item');\n            if (itemRows[idx]) {\n              const img = itemRows[idx].querySelector('img');\n              if (img) img.src = imgUrl;\n            }\n          }\n        });\n      });\n  }, 1000);\n});\n</script>"
         }
       ]
     }

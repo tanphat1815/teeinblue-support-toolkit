@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T16:17:21.561Z",
+  "updatedAt": "2026-11-13T22:26:17.193Z",
   "snippets": [
     {
       "id": "dawn-hide-theme-info",
@@ -34,7 +34,7 @@
       "id": "dawn-cart-notification-refresh",
       "title": "Dawn - Cập nhật Cart Notification / Drawer sau khi Add to Cart",
       "category": "Update Cart Count",
-      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added và re-render cart-notification hoặc cart-drawer của Dawn.",
+      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added và re-render cart-notification hoặc cart-drawer của Dawn (Gồm 2 cách: Cách 1 dùng fetch getSectionsToRender, Cách 2 dùng XMLHttpRequest).",
       "type": "js",
       "themes": [
         "dawn"
@@ -49,7 +49,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
-          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  if (!cart) return;\n  let sectionsToRender = cart.getSectionsToRender ? cart.getSectionsToRender().map((section) => section.id).join(',') : '';\n  const sections = sectionsToRender ? await fetch(`?sections=${sectionsToRender}`).then(res => res.json()) : null;\n  let cartContent = await fetch(`${window.Shopify?.routes?.root || '/'}cart.js`).then(res => res.json());\n  if (!sections || !cartContent) return;\n  cartContent = {\n    ...cartContent,\n    key: cartContent.items?.at(0)?.key ?? '',\n    sections: sections\n  };\n  cart.renderContents(cartContent);\n  if (cartContent.items.length === 0) {\n    cart.classList.add('is-empty');\n  }\n});\n</script>"
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1 - Khuyên dùng]: RenderContents qua getSectionsToRender\n// ==========================================================\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  if (!cart) return;\n  let sectionsToRender = cart.getSectionsToRender ? cart.getSectionsToRender().map((section) => section.id).join(',') : '';\n  const sections = sectionsToRender ? await fetch('?sections=' + sectionsToRender).then(res => res.json()) : null;\n  let cartContent = await fetch((window.Shopify?.routes?.root || '/') + 'cart.js').then(res => res.json());\n  if (!sections || !cartContent) return;\n  cartContent = {\n    ...cartContent,\n    key: cartContent.items?.at(0)?.key ?? '',\n    sections: sections\n  };\n  cart.renderContents(cartContent);\n  if (cartContent.items.length === 0) {\n    cart.classList.add('is-empty');\n  }\n});\n\n/*\n// ==========================================================\n// [CÁCH 2 - Dự phòng]: Dùng XMLHttpRequest cập nhật trực tiếp cart-notification\n// ==========================================================\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  var request = new XMLHttpRequest();\n  request.open('GET', '/cart.js', true);\n  request.onload = function() {\n    if (this.status >= 200 && this.status < 400) {\n      var data = JSON.parse(this.response);\n      const drawer = document.querySelector('cart-notification');\n      if (drawer) {\n        fetch(window.location.pathname + '?sections=cart-notification-product,cart-notification-button,cart-icon-bubble')\n          .then(res => res.json())\n          .then(res => drawer.renderContents({ key: data.items[0]?.key, sections: res }));\n      }\n    }\n  };\n  request.send();\n});\n*/\n</script>"
         }
       ]
     },
@@ -393,7 +393,7 @@
       "id": "prestige-theme-integration",
       "title": "Prestige - Cấu hình selectors & Ẩn elements theme",
       "category": "Theme Integration",
-      "description": "Cấu hình gallery, formCssSelector, cart drawer selectors và ẩn block price/variants của theme Prestige.",
+      "description": "Cấu hình gallery, formCssSelector, cart drawer selectors của theme Prestige (Tích hợp 2 cách mở drawer / refresh cart).",
       "type": "mixed",
       "themes": [
         "prestige"
@@ -409,7 +409,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-head",
-          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: 'product-gallery .product-gallery__image-list',\n    cartContainerSelectors: ['.cart-drawer__items'],\n    cartItemWrapperSelectors: ['.cart-drawer__items .line-item'],\n    formSelector: '[data-block-id=\"buy_buttons\"] product-form form',\n    addToCartWrapperSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons',\n    atcSubmitSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons button[type=\"submit\"]',\n    formCssSelector: '[data-block-id=\"buy_buttons\"] product-form form .v-stack.gap-4',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    onItemAdded: function(item) {,\n  };\n</script>\ndocument.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n    const cartDrawer = document.querySelector('cart-drawer');\n    if (cartDrawer && typeof cartDrawer.show === 'function') {\n      cartDrawer.show();\n    }\n  };"
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: 'product-gallery .product-gallery__image-list',\n    cartContainerSelectors: ['.cart-drawer__items'],\n    cartItemWrapperSelectors: ['.cart-drawer__items .line-item'],\n    formSelector: '[data-block-id=\"buy_buttons\"] product-form form',\n    addToCartWrapperSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons',\n    atcSubmitSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons button[type=\"submit\"]',\n    formCssSelector: '[data-block-id=\"buy_buttons\"] product-form form .v-stack.gap-4',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    // [CÁCH 1]: Bắn event cart:refresh trong callback onItemAdded\n    onItemAdded: function(item) {\n      document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n      const cartDrawer = document.querySelector('cart-drawer');\n      if (cartDrawer && typeof cartDrawer.show === 'function') {\n        cartDrawer.show();\n      }\n    }\n  };\n</script>\n<script type=\"text/javascript\">\n// [CÁCH 2]: Lắng nghe sự kiện teeinblue-event-after-cart-added và fetch /cart.js cập nhật badge header\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  fetch('/cart.js')\n    .then(res => res.json())\n    .then(data => {\n      var cartCount = document.querySelectorAll('.header__cart-count cart-count, .cart-count');\n      if (cartCount.length) {\n        cartCount.forEach(function(cart) {\n          cart.style.opacity = '1';\n          cart.innerText = data.item_count;\n        });\n      }\n    });\n});\n</script>"
         },
         {
           "filename": "assets/teeinblue-custom.css",
@@ -1177,6 +1177,169 @@
       ]
     },
     {
+      "id": "cart-drawer-concept",
+      "title": "Concept - Re-render Cart Drawer sau khi Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Cập nhật cart-drawer theme Concept sau khi thêm vào giỏ (Gồm Cách 1: PubSub ajaxProduct, Cách 2: Ghi đè method onCartUpdate trong cart.js).",
+      "type": "js",
+      "themes": [
+        "concept"
+      ],
+      "tags": [
+        "concept",
+        "cart",
+        "drawer",
+        "pubsub"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1 - Khuyên dùng]: Dùng theme.pubsub và trigger cart:bundled-sections\n// ==========================================================\nwindow.tib_custom_cart = window.tib_custom_cart || {};\ntib_custom_cart.getSectionInnerHTML = function(html, selector) {\n  return new DOMParser().parseFromString(html, 'text/html').querySelector(selector || '.shopify-section')?.innerHTML;\n};\ntib_custom_cart.getSectionsToRender = function() {\n  return [{ id: 'cart-drawer', section: 'cart-drawer', selector: '.drawer__inner' }];\n};\ntib_custom_cart.renderContents = function(parsedState) {\n  tib_custom_cart.getSectionsToRender().forEach((section) => {\n    const sectionElement = section.selector ? document.querySelector(section.selector) : document.getElementById(section.id);\n    if (sectionElement) {\n      sectionElement.innerHTML = tib_custom_cart.getSectionInnerHTML(parsedState[section.id], section.selector);\n    }\n  });\n};\ntib_custom_cart.cartAdded = async function() {\n  const cart = document.querySelector('cart-drawer');\n  let sectionsToRender = tib_custom_cart.getSectionsToRender().map((section) => section.id).join(',');\n  const sections = await fetch('?sections=' + sectionsToRender).then(response => response.json());\n  let cartContent = await fetch((window.Shopify?.routes?.root || '/') + 'cart.js').then(response => response.json());\n  let sectionsToBundle = [];\n  document.documentElement.dispatchEvent(new CustomEvent('cart:bundled-sections', { bubbles: true, detail: { sections: sectionsToBundle } }));\n  const cartJson = await (await fetch(window.theme?.routes?.cart_url || '/cart', { ...(window.theme?.utils?.fetchConfig ? window.theme.utils.fetchConfig() : {}) })).json();\n  let bundleKey = sectionsToBundle[0];\n  if (bundleKey) {\n    let sectionKey = bundleKey.split('__')[1];\n    cartJson.sections = { [bundleKey]: sections[sectionKey] };\n  }\n  if (window.theme?.pubsub) {\n    theme.pubsub.publish(theme.pubsub.PUB_SUB_EVENTS.cartUpdate, { cart: cartJson });\n  }\n  document.dispatchEvent(new CustomEvent('ajaxProduct:added', { detail: { product: cartJson } }));\n  if (cart && typeof cart.show === 'function') { cart.show(); }\n};\n\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  tib_custom_cart.cartAdded();\n});\n\n/*\n// ==========================================================\n// [CÁCH 2 - Dành cho file assets/cart.js phiên bản mới của Concept]:\n// Chèn vào method onCartUpdate(event) của theme:\n// ==========================================================\nconst tibSectionId = document.querySelector('cart-drawer');\nconst sectionToRender = new DOMParser().parseFromString(event.cart.sections[this.sectionId != 'cart-drawer' ? this.sectionId : tibSectionId?.getAttribute('data-section-id')], 'text/html');\nconst miniCart = document.querySelector(`#MiniCart-${this.sectionId}`) || document.querySelector(`#MiniCart-${tibSectionId?.getAttribute('data-section-id')}`);\nif (miniCart) {\n  const updatedElement = sectionToRender.querySelector(`#MiniCart-${this.sectionId}`) || sectionToRender.querySelector('#MiniCart-cart-drawer') || sectionToRender.querySelector(`#MiniCart-${tibSectionId?.getAttribute('data-section-id')}`);\n  if (updatedElement) { miniCart.innerHTML = updatedElement.innerHTML; }\n}\n*/\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-glozin",
+      "title": "Glozin - Re-render Cart Notification / Drawer sau Add to Cart",
+      "category": "Update Cart Count",
+      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added, fetch sections và mở drawer giỏ hàng theme Glozin.",
+      "type": "js",
+      "themes": [
+        "glozin"
+      ],
+      "tags": [
+        "glozin",
+        "cart",
+        "drawer"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function() {\n  const drawer = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  fetch('/cart.json')\n    .then(res => res.json())\n    .then(data => {\n      if (drawer && typeof drawer.renderContents === 'function') {\n        fetch(window.location.pathname + '?sections=cart-drawer,cart-icon-bubble')\n          .then(r => r.json())\n          .then(sections => drawer.renderContents({ key: data.items[0]?.key, sections }));\n        if (typeof drawer.open === 'function') drawer.open();\n      }\n    });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-venue",
+      "title": "Venue - Kích hoạt Ajax Cart & Mở Popup giỏ hàng",
+      "category": "Update Cart Count",
+      "description": "Gọi ajaxCart.load() và kích hoạt theme.mfpOpen('cart') mở popup giỏ hàng theme Venue.",
+      "type": "js",
+      "themes": [
+        "venue"
+      ],
+      "tags": [
+        "venue",
+        "ajaxcart",
+        "cart",
+        "popup"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  if (typeof window.ajaxCart !== 'undefined' && typeof window.ajaxCart.load === 'function') {\n    window.ajaxCart.load();\n  }\n  if (typeof window.theme !== 'undefined' && typeof window.theme.mfpOpen === 'function') {\n    window.theme.mfpOpen('cart');\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "cart-drawer-universal-master",
+      "title": "Universal Cart Drawer Refresh (Tương thích hơn 15 Theme & App)",
+      "category": "Update Cart Count",
+      "description": "Hàm cập nhật tổng hợp đa năng: tự động nhận diện API của wetheme, refreshCart, ajaxCart, Monster Cart, SlideCart, UpCart, CartJS, Minimog và Web Components.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "universal",
+        "cart",
+        "drawer",
+        "wetheme",
+        "monster",
+        "slidecart",
+        "upcart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nconst isFunction = (val) => typeof val === 'function';\n\nconst updateDrawerCartsUniversal = (updatedCart) => {\n  try {\n    if (isFunction(window.wetheme?.updateCartDrawer)) window.wetheme.updateCartDrawer(updatedCart);\n    if (isFunction(window.refreshCart)) window.refreshCart(updatedCart);\n    if (isFunction(window.ajaxCart?.load)) window.ajaxCart.load();\n    if (isFunction(window.monster_setCartItems) && updatedCart?.items?.length) window.monster_setCartItems(updatedCart.items);\n    if (isFunction(window.updateCartDrawerUI)) window.updateCartDrawerUI();\n    if (isFunction(window.cart?.updateCart)) {\n      window.cart.updateCart();\n      if (isFunction(window.cart?.toggleCartDropdown)) window.cart.toggleCartDropdown();\n    }\n    if (isFunction(window.SLIDECART_UPDATE)) window.SLIDECART_UPDATE();\n    if (isFunction(window.HS_SLIDE_CART_UPDATE)) window.HS_SLIDE_CART_UPDATE();\n    if (isFunction(window.upcartRegisterAddToCart)) window.upcartRegisterAddToCart();\n    if (isFunction(window.CartJS?.cart?.update)) window.CartJS.cart.update(updatedCart);\n    if (isFunction(window.monster_refresh)) window.monster_refresh();\n    if (isFunction(window.MinimogTheme?.Cart?.renderNewCart)) window.MinimogTheme.Cart.renderNewCart();\n    if (isFunction(window.theme?.miniCart?.updateElements)) {\n      window.theme.miniCart.updateElements();\n      if (isFunction(window.theme?.miniCart?.generateCart)) window.theme.miniCart.generateCart();\n    }\n  } catch (e) {\n    console.error('Universal cart window method update failed:', e);\n  }\n\n  // Trigger các custom event phổ biến\n  try {\n    document.dispatchEvent(new CustomEvent('cart:build'));\n    document.dispatchEvent(new CustomEvent('cartdrawer:refresh'));\n    document.dispatchEvent(new CustomEvent('dispatch:cart-drawer:refresh'));\n    document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n  } catch (e) {\n    console.error('Universal cart custom event failed:', e);\n  }\n};\n\ndocument.addEventListener('teeinblue-event-after-cart-added', async function() {\n  try {\n    const updatedCart = await (await fetch('/cart.js')).json();\n    updateDrawerCartsUniversal(updatedCart);\n  } catch (err) {\n    console.error('Error fetching cart:', err);\n  }\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "app-xboost-cart-drawer-upsell",
+      "title": "Xboost Cart Drawer Upsell - Thay thumbnail sản phẩm",
+      "category": "Theme Integration",
+      "description": "Lắng nghe sự kiện xboost-open-cart của app Xboost và tự động cập nhật ảnh customization_image trong giỏ hàng.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "xboost",
+        "upsell",
+        "cart",
+        "thumbnail"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nwindow.addEventListener('xboost-open-cart', function () {\n  setTimeout(function() {\n    fetch('/cart.js')\n      .then(response => response.json())\n      .then(data => {\n        data.items.forEach((item, index) => {\n          if (item.properties && item.properties.customization_image) {\n            const itemElement = document.querySelectorAll('.xb-cart-item')[index];\n            if (itemElement) {\n              const imageElement = itemElement.querySelector('img');\n              if (imageElement) imageElement.src = item.properties.customization_image;\n            }\n          }\n        });\n      });\n  }, 1000);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "app-monster-cart-drawer-upsell",
+      "title": "Monster Cart Upsell - Cập nhật thumbnail giỏ hàng",
+      "category": "Theme Integration",
+      "description": "Tự động thay đổi hình ảnh trong cart drawer của app Monster Upsell bằng đường link customization của Teeinblue.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "monster-cart",
+        "upsell",
+        "thumbnail",
+        "cart"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('DOMContentLoaded', function () {\n  function updateMonsterCartImages() {\n    fetch('/cart.js')\n      .then(response => response.json())\n      .then(data => {\n        const cartImages = document.querySelectorAll('.monster-cart-item img');\n        data.items.forEach((item, index) => {\n          if (item.properties && item.properties.customization_image && cartImages[index]) {\n            cartImages[index].src = item.properties.customization_image;\n          }\n        });\n      });\n  }\n  document.addEventListener('teeinblue-event-after-cart-added', function() {\n    setTimeout(updateMonsterCartImages, 800);\n  });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "app-aov-cart-drawer-integration",
+      "title": "AOV Cart Drawer - Tích hợp thumbnail & trigger mở giỏ",
+      "category": "Theme Integration",
+      "description": "Lắng nghe sự kiện thêm vào giỏ và tự động thay thế ảnh customization cho app AOV Cart Drawer.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "aov-cart",
+        "cart-drawer",
+        "thumbnail",
+        "app"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', function () {\n  setTimeout(() => {\n    fetch('/cart.js')\n      .then(res => res.json())\n      .then(cart => {\n        cart.items.forEach((item, idx) => {\n          if (item.properties?._customization_image || item.properties?.customization_image) {\n            const imgUrl = item.properties._customization_image || item.properties.customization_image;\n            const itemRows = document.querySelectorAll('.aov-cart-item');\n            if (itemRows[idx]) {\n              const img = itemRows[idx].querySelector('img');\n              if (img) img.src = imgUrl;\n            }\n          }\n        });\n      });\n  }, 1000);\n});\n</script>"
+        }
+      ]
+    },
+    {
       "id": "ui-border-radius-8px",
       "title": "Bo tròn toàn bộ giao diện Teeinblue (Border Radius 8px)",
       "category": "Fix CSS",
@@ -1318,6 +1481,99 @@
       ]
     },
     {
+      "id": "ui-dark-background-theme-styling",
+      "title": "Tối ưu hiển thị cho Theme nền đen (Dark Background)",
+      "category": "Fix CSS",
+      "description": "Căn chỉnh màu sắc giá, viền swatch radio trắng mờ, gạch chéo variant unavailable và màu nền sticky bar cho theme tông màu tối.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "dark-theme",
+        "dark-mode",
+        "ui",
+        "css",
+        "swatch"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Style dành cho Theme nền đen (Dark Theme) */\n.teeinblue-enabled .tee-price--current {\n  color: #fff !important;\n  font-weight: 700;\n}\n\n.teeinblue-enabled .tee-radio {\n  border: 1px solid rgba(255, 255, 255, 0.2) !important;\n  border-radius: 4px !important;\n  background: none !important;\n}\n\n.teeinblue-enabled .tee-radio:hover {\n  box-shadow: 0 1px 3px rgba(255, 255, 255, 0.4);\n  border-color: rgba(255, 255, 255, 0.4) !important;\n}\n\n.teeinblue-enabled .tee-radio.active {\n  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);\n  border-color: rgba(255, 255, 255, 0.6) !important;\n}\n\n.teeinblue-enabled .tee-radio .tee-radio-label {\n  background-color: #000;\n  color: #fff !important;\n  border-radius: 4px !important;\n}\n\n.teeinblue-enabled .tee-radio.tee-radio--unavailable:before {\n  content: \"\";\n  position: absolute;\n  background-color: rgba(255, 255, 255, 0.3);\n  width: calc(100% + 8px);\n  height: 2px;\n  transform: rotate(30deg);\n  bottom: calc(50% - 1px);\n  left: -4px;\n}\n\n@media only screen and (max-width: 768px) {\n  .teeinblue-enabled .tee-form-actions:not(.tee-form-actions--no-sticky) {\n    background-color: #000 !important;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-clipart-grid-4-columns-mobile",
+      "title": "Chỉnh Clipart hiển thị lưới 4 cột / 1 hàng trên Mobile",
+      "category": "Fix CSS",
+      "description": "Sắp xếp danh sách clipart thành lưới gọn gàng 4 cột trên thiết bị di động màn hình nhỏ (max-width: 767px).",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "clipart",
+        "grid",
+        "mobile",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Clipart 4 cột 1 hàng trên Mobile */\n@media only screen and (max-width: 767px) {\n  .tee-field__input .tee-clipart-row {\n    display: grid !important;\n    grid-template-columns: repeat(4, minmax(65px, 1fr)) !important;\n    gap: 8px !important;\n    justify-content: start;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-photo-upload-grid-3-columns",
+      "title": "Chỉnh các trường Upload Photo hiển thị 3 cột trên Desktop",
+      "category": "Fix CSS",
+      "description": "Chia các trường tải ảnh cá nhân thành 3 cột (33.33%) trên desktop và 2 cột trên tablet giúp form ngắn gọn hơn.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "photo-upload",
+        "grid",
+        "flex",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Bố cục Upload Photo nhiều cột */\n.tee-form-wrapper .tee-form-inputs {\n  display: flex !important;\n  flex-wrap: wrap !important;\n}\n\n.tee-form-wrapper .tee-form-inputs > .tee-field--photo {\n  flex: 0 0 50%;\n  max-width: calc(50% - 10px);\n  padding: 0 5px;\n  margin-bottom: 12px;\n}\n\n@media only screen and (min-width: 1025px) {\n  .tee-form-wrapper .tee-form-inputs > .tee-field--photo {\n    flex: 0 0 33.33%;\n    max-width: calc(33.33% - 10px);\n  }\n}\n\n@media only screen and (max-width: 749px) {\n  .tee-form-wrapper .tee-form-inputs > .tee-field--photo {\n    flex: 0 0 100%;\n    max-width: 100%;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-save-amount-badge-above-price",
+      "title": "Hiển thị Badge số tiền tiết kiệm (Save Amount) trên giá",
+      "category": "Fix CSS",
+      "description": "Hiển thị nhãn Save kèm số tiền giảm giá nổi bật ngay phía trên mức giá sản phẩm.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "badge",
+        "save-price",
+        "discount",
+        "ui"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Badge Save Amount trên Price */\n.tee-block.tee-product-price {\n  position: relative;\n  margin-top: 30px !important;\n}\n\n.tee-block.tee-product-price .tee-price--saving {\n  position: absolute;\n  top: -24px;\n  left: 0;\n  background: #e53e3e;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  padding: 2px 8px;\n  border-radius: 4px;\n  text-transform: uppercase;\n}"
+        }
+      ]
+    },
+    {
       "id": "hook-fly-to-cart-double-fix",
       "title": "Fix Fly-to-Cart Animation bị kích hoạt 2 lần",
       "category": "Theme Integration",
@@ -1335,7 +1591,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
-          "code": "document.addEventListener('teeinblue-event-component-injected', () => {\n<script>\n  teeinblue = {\n    beforeAddToCart: (input) => {,\n  };\n</script>\nconst flyComponent = document.querySelector('add-to-cart-component');\n    if (flyComponent && typeof flyComponent.publicAnimateFlyToCart === 'function') {\n      flyComponent.publicAnimateFlyToCart();\n    }\n    return input;\n  };\n});"
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  window.teeinblue = window.teeinblue || {};\n  window.teeinblue.beforeAddToCart = (input) => {\n    const flyComponent = document.querySelector('add-to-cart-component');\n    if (flyComponent && typeof flyComponent.publicAnimateFlyToCart === 'function') {\n      flyComponent.publicAnimateFlyToCart();\n    }\n    return input;\n  };\n});\n</script>"
         }
       ]
     },
@@ -1387,7 +1643,7 @@
       "id": "hook-insert-size-chart-button",
       "title": "Chèn nút Size Chart của Theme vào cạnh Option Teeinblue",
       "category": "Theme Integration",
-      "description": "Lấy nút Size Chart modal của theme và render vào cạnh nhãn kích cỡ (Size) trong form Teeinblue.",
+      "description": "Chèn nút Size Chart vào cạnh nhãn kích cỡ Size trong form Teeinblue (Tích hợp cả 2 cách: Clone modal theme Vision/Turbo hoặc app Kiwi Sizing Chart).",
       "type": "js",
       "themes": [
         "vision",
@@ -1403,7 +1659,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
-          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const sizeButton = document.querySelector('.product-popup-modal__button, [data-modal-open*=\"size\"], .size-chart-link');\n  const sizeLabel = Array.from(document.querySelectorAll('.tee-field__label')).find(el => /size|kích thước/i.test(el.textContent));\n  if (sizeButton && sizeLabel && !sizeLabel.querySelector('.tib-cloned-size-chart')) {\n    const clone = sizeButton.cloneNode(true);\n    clone.classList.add('tib-cloned-size-chart');\n    clone.style.marginLeft = '8px';\n    clone.addEventListener('click', (e) => {\n      e.preventDefault();\n      sizeButton.click();\n    });\n    sizeLabel.appendChild(clone);\n  }\n});\n</script>"
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1]: Clone nút Size Chart modal mặc định của Theme (Vision / Turbo / Dawn)\n// ==========================================================\nconst checkSizingChartTheme = () => {\n  const sizingChart = document.querySelector('modal-opener, .product-popup-modal__button, [data-modal-open*=\"size\"], .size-chart-link');\n  const teeOptionTitle = Array.from(document.querySelectorAll('.tee-field__label, .tee-option--size .tee-option__title')).find(el => /size|kích thước/i.test(el.textContent));\n  if (sizingChart && teeOptionTitle && !teeOptionTitle.querySelector('.tib-cloned-size-chart')) {\n    const clone = sizingChart.cloneNode(true);\n    clone.classList.add('tib-cloned-size-chart');\n    clone.style.marginLeft = '8px';\n    clone.addEventListener('click', (e) => {\n      e.preventDefault();\n      sizingChart.click();\n    });\n    teeOptionTitle.appendChild(clone);\n  }\n};\n\n// ==========================================================\n// [CÁCH 2]: Chèn nút từ app Kiwi Sizing Chart (#KiwiSizingChart / .ks-chart-container)\n// ==========================================================\nconst checkKiwiSizingChart = () => {\n  const kiwiSizingChart = document.querySelector('.ks-chart-container .ks-chart-modal-link, #KiwiSizingChart');\n  const teeOptionTitle = document.querySelector('.tee-option--size .tee-option__title, .tee-field--size .tee-field__label');\n  if (kiwiSizingChart && teeOptionTitle && !teeOptionTitle.querySelector('.ks-chart-cloned')) {\n    const kiwiClone = kiwiSizingChart.cloneNode(true);\n    kiwiClone.classList.add('ks-chart-cloned');\n    kiwiClone.style.marginLeft = '8px';\n    kiwiClone.addEventListener('click', () => kiwiSizingChart.click());\n    teeOptionTitle.appendChild(kiwiClone);\n  }\n};\n\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  setTimeout(() => {\n    checkSizingChartTheme();\n    checkKiwiSizingChart();\n  }, 1000);\n});\ndocument.addEventListener('teeinblue-event-variant-changed', () => {\n  setTimeout(() => {\n    checkSizingChartTheme();\n    checkKiwiSizingChart();\n  }, 200);\n});\n</script>"
         }
       ]
     },
@@ -1456,7 +1712,7 @@
       "id": "hook-sdkv2-cross-sell-redirect",
       "title": "SDK v2 - Cross-sell Product Metafield Redirect",
       "category": "Theme Integration",
-      "description": "Tự động lắng nghe metafield cross_sell_product và dispatch theme:product-added sau khi add to cart.",
+      "description": "Tự động phân biệt click Buy Now hay Add to Cart để redirect sản phẩm bán kèm (Gồm Code mới chặn Buy Now và Code cũ).",
       "type": "liquid",
       "themes": [
         "*"
@@ -1470,12 +1726,206 @@
         {
           "filename": "snippets/teeinblue-cross-sell.liquid",
           "mode": "create",
-          "code": "{% if product and product.metafields.custom.cross_sell_product.value %}\n<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const crossSellHandle = '{{ product.metafields.custom.cross_sell_product.value.handle }}';\n  if (crossSellHandle) {\n    window.location.href = '/products/' + crossSellHandle;\n  }\n});\n</script>\n{% endif %}"
+          "code": "{% comment %}\n===================================================================\n[CÁCH 1 - Khuyên dùng]: Phân biệt nút Buy Now vs Add to Cart\nTránh lỗi: Khách bấm Buy Now nhưng lại bị chuyển hướng vào giỏ hàng\n===================================================================\n{% endcomment %}\n<script>\nwindow._isBuyNowClicked = false;\nfunction bindBuyNowButton(button) {\n  if (!button || button.dataset.bound === 'true') return;\n  button.dataset.bound = 'true';\n  button.addEventListener('click', () => { window._isBuyNowClicked = true; });\n}\nfunction bindAtcButton(button) {\n  if (!button || button.dataset.bound === 'true') return;\n  button.dataset.bound = 'true';\n  button.addEventListener('click', () => { window._isBuyNowClicked = false; });\n}\nfunction observePopupBuyNowButtons() {\n  const observer = new MutationObserver(() => {\n    const popupBuyNowBtn = document.querySelector('.tee-dialog .tee-btn--buynow');\n    if (popupBuyNowBtn) bindBuyNowButton(popupBuyNowBtn);\n    const popupAtcBtn = document.querySelector('.tee-dialog .tee-btn--atc');\n    if (popupAtcBtn) bindAtcButton(popupAtcBtn);\n  });\n  observer.observe(document.body, { childList: true, subtree: true });\n}\n\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  bindBuyNowButton(document.querySelector('#teeBuynowButton'));\n  bindAtcButton(document.querySelector('#teeAtcButton'));\n  observePopupBuyNowButtons();\n});\n\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  if (window._isBuyNowClicked) {\n    window._isBuyNowClicked = false;\n    return;\n  }\n  {% if product and product.metafields.custom.cross_sell_product.value %}\n    const crossSellHandle = \"{{ product.metafields.custom.cross_sell_product.value.handle }}\";\n    const crossSellUrl = \"{{ product.metafields.custom.cross_sell_product.value.url }}\";\n    fetch('/cart.js')\n      .then(res => res.json())\n      .then(cart => {\n        const isProductInCart = cart.items.some(item => item.handle === crossSellHandle);\n        if (!isProductInCart) {\n          window.location.href = crossSellUrl;\n        } else {\n          console.log(\"The cross-sell product is already in the cart.\");\n        }\n      });\n  {% else %}\n    setTimeout(() => {\n      window.location.href = \"{{ routes.cart_url }}\";\n    }, 200);\n  {% endif %}\n});\n</script>"
         },
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
           "code": "{% render 'teeinblue-cross-sell' %}"
+        }
+      ]
+    },
+    {
+      "id": "hook-add-cart-preview-button",
+      "title": "Hiển thị nút / link Preview ảnh thiết kế trong Cart",
+      "category": "Theme Integration",
+      "description": "Cho phép khách xem lại hình ảnh cá nhân hóa trong trang giỏ hàng (Gồm Cách 1: Liquid link trực tiếp _customization_image và Cách 2: Config teeinblue object).",
+      "type": "mixed",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "preview-image",
+        "cart",
+        "customization-image",
+        "liquid"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{% comment %}\n[CÁCH 1 - Khuyên dùng]: Chèn trực tiếp thẻ link vào template cart (ví dụ sections/main-cart-items.liquid):\n{% assign customizationUrl = item.properties._customization_image %}\n{% if customizationUrl %}\n  <div class=\"tee-cart-preview-link\">\n    Preview: <a href=\"{{ customizationUrl }}\" target=\"_blank\" rel=\"noopener\">Xem thiết kế</a>\n  </div>\n{% endif %}\n{% endcomment %}\n\n<!-- [CÁCH 2]: Cấu hình qua biến teeinblue trong theme.liquid -->\n<script type=\"text/javascript\">\n  teeinblue = {\n    addCartPreviewButton: true,\n    cartPreviewButtonText: 'Xem ảnh cá nhân hóa',\n    cartContainerSelectors: ['.cart-item', '.cart__items'],\n    cartItemWrapperSelectors: ['.product-cart-item', '.cart-item'],\n    cartPreviewButtonWrapperSelectors: ['.product-cart-item > div:last-child', '.cart-item__details'],\n    cartPreviewCheckoutLabel: 'Process to Checkout',\n    cartPreviewShowCheckout: false,\n  };\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-limit-number-input-range",
+      "title": "Giới hạn giá trị nhập số (Min / Max Input Range Limit)",
+      "category": "Theme Integration",
+      "description": "Chặn không cho buyer gõ số vượt quá min/max đã thiết lập (Ví dụ ngày sinh 1-31) thay vì chỉ hiện thông báo lỗi (Gồm 2 cách).",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "input-limit",
+        "validation",
+        "date-field",
+        "max-limit"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1]: Bắt sự kiện keydown trên class cụ thể (.custom-validate-date)\n// ==========================================================\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  const inputField = document.querySelector('.custom-validate-date .tee__input--number');\n  if (inputField) {\n    inputField.addEventListener('keydown', (event) => {\n      const min = 1;\n      const max = 31;\n      if (['ArrowUp', 'ArrowDown', 'Backspace', 'Delete', 'Tab', 'Enter'].includes(event.key)) return;\n      const newValue = parseInt((inputField.value || '') + event.key);\n      if (newValue < min || newValue > max || isNaN(newValue)) {\n        event.preventDefault();\n      }\n    });\n  }\n});\n\n// ==========================================================\n// [CÁCH 2]: Tự động quét theo heading text ('Date' / 'Ngày') & quan sát app YMQ\n// ==========================================================\nconst checkInputFieldLimit = () => {\n  document.querySelectorAll('.tee-field').forEach((field) => {\n    const headingSpan = field.querySelector('.tee-field__heading span, .tee-field__label');\n    const numberInput = field.querySelector('.tee-field__input .tee__input--number');\n    if (headingSpan && /date|ngày/i.test(headingSpan.textContent) && numberInput) {\n      const min = 1;\n      const max = 31;\n      numberInput.addEventListener('keydown', (event) => {\n        if (['ArrowUp', 'ArrowDown', 'Backspace', 'Delete', 'Tab', 'Enter'].includes(event.key)) return;\n        const newValue = parseInt((numberInput.value || '') + event.key);\n        if (newValue < min || newValue > max || isNaN(newValue)) {\n          event.preventDefault();\n        }\n      });\n    }\n  });\n};\n\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  checkInputFieldLimit();\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-hide-atc-response-message",
+      "title": "Tự ẩn thông báo 'Item added to cart' sau 3s & Không dính Sticky",
+      "category": "Theme Integration",
+      "description": "Chuyển thông báo thành công sau khi ATC ra khỏi khối nút bấm để không bị sticky che màn hình trên mobile và tự biến mất sau 3-4 giây (Gồm 2 cách).",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "atc-message",
+        "toast",
+        "auto-hide",
+        "mobile-sticky"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1]: Di chuyển .tee-form-responses ra sau #teeFormActions\n// ==========================================================\nfunction moveTeeFormResponses() {\n  const teeFormResponses = document.querySelector('.tee-form-responses');\n  const teeFormActions = document.querySelector('#teeFormActions');\n  if (teeFormResponses && teeFormActions) {\n    teeFormActions.insertAdjacentElement('afterend', teeFormResponses);\n  }\n}\n\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  const atcButton = document.querySelector('.tee-btn--atc');\n  if (atcButton) {\n    atcButton.addEventListener('click', () => { setTimeout(moveTeeFormResponses, 200); });\n  }\n});\n\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  const checkDOM = setInterval(function() {\n    const teeResponse = document.querySelector('.tee-form-responses, .tee-response');\n    if (teeResponse) {\n      clearInterval(checkDOM);\n      teeResponse.style.display = 'block';\n      setTimeout(() => { teeResponse.style.display = 'none'; }, 3500);\n    }\n  }, 100);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-strikethrough-out-of-stock-variants",
+      "title": "Tự động gạch chéo Swatch Variant hết hàng (Out of Stock)",
+      "category": "Theme Integration",
+      "description": "Quét dữ liệu variants từ /product.js và tự động gắn class 'soldout' (gạch chéo) khi người dùng chọn kết hợp các tùy chọn.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "out-of-stock",
+        "variant-swatch",
+        "soldout",
+        "strikethrough"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nfetch(window.location.pathname + '.js')\n  .then(res => res.json())\n  .then(product => {\n    const variants = product.variants;\n    function updateSwatches() {\n      const selectedOptions = [];\n      document.querySelectorAll('.tee-option').forEach((optEl, idx) => {\n        const checked = optEl.querySelector('input[type=\"radio\"]:checked');\n        selectedOptions[idx] = checked ? checked.value : null;\n      });\n\n      document.querySelectorAll('.tee-option').forEach((optEl, optIndex) => {\n        optEl.querySelectorAll('.tee-radio').forEach(radioEl => {\n          const val = radioEl.querySelector('input')?.value;\n          const conditions = [...selectedOptions];\n          conditions[optIndex] = val;\n          radioEl.classList.remove('available', 'soldout', 'unavailable');\n\n          if (optIndex === 0) {\n            radioEl.classList.add('available');\n            return;\n          }\n\n          const availableVariant = variants.find(v =>\n            (conditions[0] == null || v.option1 === conditions[0]) &&\n            (conditions[1] == null || v.option2 === conditions[1]) &&\n            (conditions[2] == null || v.option3 === conditions[2]) &&\n            v.available\n          );\n\n          if (availableVariant) {\n            radioEl.classList.add('available');\n          } else {\n            radioEl.classList.add('soldout');\n          }\n        });\n      });\n    }\n\n    document.addEventListener('teeinblue-event-component-injected', updateSwatches);\n    document.addEventListener('teeinblue-event-variant-changed', () => { setTimeout(updateSwatches, 100); });\n  });\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Style gạch chéo variant sold out */\n.tee-radio.soldout {\n  position: relative;\n  opacity: 0.5;\n}\n\n.tee-radio.soldout:before {\n  content: \"\";\n  position: absolute;\n  top: 50%;\n  left: 0;\n  right: 0;\n  height: 1.5px;\n  background-color: #ff0000;\n  transform: rotate(-30deg);\n  z-index: 2;\n}"
+        }
+      ]
+    },
+    {
+      "id": "hook-replace-euro-entity-dropdown",
+      "title": "Chuyển mã ký tự '&euro;' thành biểu tượng '€' trong Dropdown Select",
+      "category": "Theme Integration",
+      "description": "Duyệt qua các thẻ select của Teeinblue và tự động convert chuỗi &euro; thành biểu tượng đồng tiền Euro € thật.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "euro",
+        "currency",
+        "dropdown",
+        "select"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  document.querySelectorAll('.tee-field__select').forEach(function(selectBox) {\n    Array.from(selectBox.options).forEach(function(opt) {\n      if (opt.textContent && opt.textContent.includes('&euro;')) {\n        opt.textContent = opt.textContent.replace(/&euro;/g, '€');\n      }\n    });\n  });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-sync-size-color-on-product-change",
+      "title": "Tự động chọn lại Size / Color khi khách đổi Base Product",
+      "category": "Theme Integration",
+      "description": "Lưu trữ Size và Color người dùng vừa chọn, tự động kích hoạt lại đúng giá trị đó sau khi khách chuyển sang loại sản phẩm khác (Áo thun -> Hoodie).",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "base-product",
+        "available-product",
+        "sync-variant",
+        "ux"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nlet lastSelectedSize = null;\nlet lastSelectedColor = null;\n\nfunction saveVariantValues() {\n  const sizeRadio = document.querySelector('.tee-option--size .tee-radio input:checked');\n  const colorRadio = document.querySelector('.tee-option--color .tee-radio input:checked');\n  if (sizeRadio) lastSelectedSize = sizeRadio.value;\n  if (colorRadio) lastSelectedColor = colorRadio.value;\n}\n\nfunction restoreVariantValues() {\n  if (lastSelectedSize) {\n    const matchingSize = document.querySelector('.tee-option--size .tee-radio input[value=\"' + lastSelectedSize + '\"]');\n    if (matchingSize) matchingSize.click();\n  }\n  if (lastSelectedColor) {\n    const matchingColor = document.querySelector('.tee-option--color .tee-radio input[value=\"' + lastSelectedColor + '\"]');\n    if (matchingColor) matchingColor.click();\n  }\n}\n\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  document.querySelectorAll('.tee-option--size input, .tee-option--color input').forEach(input => {\n    input.addEventListener('change', saveVariantValues);\n  });\n  document.querySelectorAll('.tee-available-products .tee-radio input').forEach(productInput => {\n    productInput.addEventListener('click', () => {\n      setTimeout(restoreVariantValues, 500);\n    });\n  });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-missing-customization-warning",
+      "title": "Cảnh báo lỗi mất tùy chỉnh (Missing Customization Warning)",
+      "category": "Theme Integration",
+      "description": "Hiển thị hộp cảnh báo màu đỏ nhắc nhở khách hàng reload lại trang nếu phát hiện sản phẩm Teeinblue bị mất _customization_id.",
+      "type": "mixed",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "warning",
+        "cart-error",
+        "customization-id",
+        "recovery"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/teeinblue-customization-warning.liquid",
+          "mode": "create",
+          "code": "{% comment %} Cảnh báo thiếu customization_id trong giỏ hàng {% endcomment %}\n{% for property in item.properties %}\n  {% if property.first contains '_customization_id' and property.last != blank %}\n    {% assign hasTibId = true %}\n    {% break %}\n  {% endif %}\n{% endfor %}\n\n{% if item.product.metafields.teeinblue.campaign_version and hasTibId != true %}\n  <div class=\"teeinblue-warning-no-customization\" style=\"color: #EC0101; border: 2px solid #EC0101; padding: 10px; margin-top: 8px; border-radius: 4px; font-weight: 500;\">\n    Lỗi: Chưa nhận diện được thiết kế cá nhân hóa. Vui lòng xóa mục này và thêm lại từ trang sản phẩm!\n  </div>\n{% endif %}"
+        },
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "<style>\n.teeinblue-warning-no-customization {\n  background: #fff5f5;\n  color: #c53030;\n  border-left: 4px solid #e53e3e;\n  padding: 10px 14px;\n}\n</style>"
+        }
+      ]
+    },
+    {
+      "id": "template-order-confirmation-artwork-image",
+      "title": "Template Email / Phiếu Đóng Gói: Hiển thị hình ảnh Customization",
+      "category": "Theme Integration",
+      "description": "Đoạn mã Liquid chèn vào template Order Confirmation Email hoặc Shopify Order Printer / Packing Slip để hiển thị ảnh artwork sắc nét kèm link download.",
+      "type": "liquid",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "order-email",
+        "packing-slip",
+        "order-printer",
+        "artwork-image"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/tib-order-confirmation-image.liquid",
+          "mode": "create",
+          "code": "{% comment %}\nDùng chèn vào Settings -> Notifications -> Order Confirmation hoặc Shopify Order Printer:\n{% endcomment %}\n{% if line.properties.customization_id %}\n  {% capture customization_image_url %}https://cdn.teeinblue.com/customizations/{{ line.properties.customization_id }}.jpg{% endcapture %}\n  <div style=\"margin-top: 10px;\">\n    <a href=\"{{ customization_image_url }}\" target=\"_blank\">\n      <img src=\"{{ customization_image_url }}\" alt=\"Teeinblue Design\" width=\"120\" style=\"border-radius: 4px; border: 1px solid #e2e8f0; max-width: 100%; display: block;\" />\n    </a>\n    <span style=\"font-size: 12px; color: #718096; display: block; margin-top: 4px;\">\n      <a href=\"{{ customization_image_url }}\" target=\"_blank\" style=\"color: #3182ce; text-decoration: none;\">Xem file in gốc</a>\n    </span>\n  </div>\n{% endif %}"
         }
       ]
     },

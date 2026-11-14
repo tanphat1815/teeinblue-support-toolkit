@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T14:41:57.042Z",
+  "updatedAt": "2026-11-13T22:26:17.192Z",
   "snippets": [
     {
       "id": "hook-fly-to-cart-double-fix",
@@ -72,7 +72,7 @@
       "id": "hook-insert-size-chart-button",
       "title": "Chèn nút Size Chart của Theme vào cạnh Option Teeinblue",
       "category": "Theme Integration",
-      "description": "Lấy nút Size Chart modal của theme và render vào cạnh nhãn kích cỡ (Size) trong form Teeinblue.",
+      "description": "Chèn nút Size Chart vào cạnh nhãn kích cỡ Size trong form Teeinblue (Tích hợp cả 2 cách: Clone modal theme Vision/Turbo hoặc app Kiwi Sizing Chart).",
       "type": "js",
       "themes": [
         "vision",
@@ -88,7 +88,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
-          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function () {\n  const sizeButton = document.querySelector('.product-popup-modal__button, [data-modal-open*=\"size\"], .size-chart-link');\n  const sizeLabel = Array.from(document.querySelectorAll('.tee-field__label')).find(el => /size|kích thước/i.test(el.textContent));\n  if (sizeButton && sizeLabel && !sizeLabel.querySelector('.tib-cloned-size-chart')) {\n    const clone = sizeButton.cloneNode(true);\n    clone.classList.add('tib-cloned-size-chart');\n    clone.style.marginLeft = '8px';\n    clone.addEventListener('click', (e) => {\n      e.preventDefault();\n      sizeButton.click();\n    });\n    sizeLabel.appendChild(clone);\n  }\n});\n</script>"
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1]: Clone nút Size Chart modal mặc định của Theme (Vision / Turbo / Dawn)\n// ==========================================================\nconst checkSizingChartTheme = () => {\n  const sizingChart = document.querySelector('modal-opener, .product-popup-modal__button, [data-modal-open*=\"size\"], .size-chart-link');\n  const teeOptionTitle = Array.from(document.querySelectorAll('.tee-field__label, .tee-option--size .tee-option__title')).find(el => /size|kích thước/i.test(el.textContent));\n  if (sizingChart && teeOptionTitle && !teeOptionTitle.querySelector('.tib-cloned-size-chart')) {\n    const clone = sizingChart.cloneNode(true);\n    clone.classList.add('tib-cloned-size-chart');\n    clone.style.marginLeft = '8px';\n    clone.addEventListener('click', (e) => {\n      e.preventDefault();\n      sizingChart.click();\n    });\n    teeOptionTitle.appendChild(clone);\n  }\n};\n\n// ==========================================================\n// [CÁCH 2]: Chèn nút từ app Kiwi Sizing Chart (#KiwiSizingChart / .ks-chart-container)\n// ==========================================================\nconst checkKiwiSizingChart = () => {\n  const kiwiSizingChart = document.querySelector('.ks-chart-container .ks-chart-modal-link, #KiwiSizingChart');\n  const teeOptionTitle = document.querySelector('.tee-option--size .tee-option__title, .tee-field--size .tee-field__label');\n  if (kiwiSizingChart && teeOptionTitle && !teeOptionTitle.querySelector('.ks-chart-cloned')) {\n    const kiwiClone = kiwiSizingChart.cloneNode(true);\n    kiwiClone.classList.add('ks-chart-cloned');\n    kiwiClone.style.marginLeft = '8px';\n    kiwiClone.addEventListener('click', () => kiwiSizingChart.click());\n    teeOptionTitle.appendChild(kiwiClone);\n  }\n};\n\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  setTimeout(() => {\n    checkSizingChartTheme();\n    checkKiwiSizingChart();\n  }, 1000);\n});\ndocument.addEventListener('teeinblue-event-variant-changed', () => {\n  setTimeout(() => {\n    checkSizingChartTheme();\n    checkKiwiSizingChart();\n  }, 200);\n});\n</script>"
         }
       ]
     },
@@ -141,7 +141,7 @@
       "id": "hook-sdkv2-cross-sell-redirect",
       "title": "SDK v2 - Cross-sell Product Metafield Redirect",
       "category": "Theme Integration",
-      "description": "Tự động lắng nghe metafield cross_sell_product và dispatch theme:product-added sau khi add to cart.",
+      "description": "Tự động phân biệt click Buy Now hay Add to Cart để redirect sản phẩm bán kèm (Gồm Code mới chặn Buy Now và Code cũ).",
       "type": "liquid",
       "themes": [
         "*"
@@ -155,12 +155,206 @@
         {
           "filename": "snippets/teeinblue-cross-sell.liquid",
           "mode": "create",
-          "code": "{% if product and product.metafields.custom.cross_sell_product.value %}\n<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  const crossSellHandle = '{{ product.metafields.custom.cross_sell_product.value.handle }}';\n  if (crossSellHandle) {\n    window.location.href = '/products/' + crossSellHandle;\n  }\n});\n</script>\n{% endif %}"
+          "code": "{% comment %}\n===================================================================\n[CÁCH 1 - Khuyên dùng]: Phân biệt nút Buy Now vs Add to Cart\nTránh lỗi: Khách bấm Buy Now nhưng lại bị chuyển hướng vào giỏ hàng\n===================================================================\n{% endcomment %}\n<script>\nwindow._isBuyNowClicked = false;\nfunction bindBuyNowButton(button) {\n  if (!button || button.dataset.bound === 'true') return;\n  button.dataset.bound = 'true';\n  button.addEventListener('click', () => { window._isBuyNowClicked = true; });\n}\nfunction bindAtcButton(button) {\n  if (!button || button.dataset.bound === 'true') return;\n  button.dataset.bound = 'true';\n  button.addEventListener('click', () => { window._isBuyNowClicked = false; });\n}\nfunction observePopupBuyNowButtons() {\n  const observer = new MutationObserver(() => {\n    const popupBuyNowBtn = document.querySelector('.tee-dialog .tee-btn--buynow');\n    if (popupBuyNowBtn) bindBuyNowButton(popupBuyNowBtn);\n    const popupAtcBtn = document.querySelector('.tee-dialog .tee-btn--atc');\n    if (popupAtcBtn) bindAtcButton(popupAtcBtn);\n  });\n  observer.observe(document.body, { childList: true, subtree: true });\n}\n\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  bindBuyNowButton(document.querySelector('#teeBuynowButton'));\n  bindAtcButton(document.querySelector('#teeAtcButton'));\n  observePopupBuyNowButtons();\n});\n\ndocument.addEventListener('teeinblue-event-after-cart-added', () => {\n  if (window._isBuyNowClicked) {\n    window._isBuyNowClicked = false;\n    return;\n  }\n  {% if product and product.metafields.custom.cross_sell_product.value %}\n    const crossSellHandle = \"{{ product.metafields.custom.cross_sell_product.value.handle }}\";\n    const crossSellUrl = \"{{ product.metafields.custom.cross_sell_product.value.url }}\";\n    fetch('/cart.js')\n      .then(res => res.json())\n      .then(cart => {\n        const isProductInCart = cart.items.some(item => item.handle === crossSellHandle);\n        if (!isProductInCart) {\n          window.location.href = crossSellUrl;\n        } else {\n          console.log(\"The cross-sell product is already in the cart.\");\n        }\n      });\n  {% else %}\n    setTimeout(() => {\n      window.location.href = \"{{ routes.cart_url }}\";\n    }, 200);\n  {% endif %}\n});\n</script>"
         },
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
           "code": "{% render 'teeinblue-cross-sell' %}"
+        }
+      ]
+    },
+    {
+      "id": "hook-add-cart-preview-button",
+      "title": "Hiển thị nút / link Preview ảnh thiết kế trong Cart",
+      "category": "Theme Integration",
+      "description": "Cho phép khách xem lại hình ảnh cá nhân hóa trong trang giỏ hàng (Gồm Cách 1: Liquid link trực tiếp _customization_image và Cách 2: Config teeinblue object).",
+      "type": "mixed",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "preview-image",
+        "cart",
+        "customization-image",
+        "liquid"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{% comment %}\n[CÁCH 1 - Khuyên dùng]: Chèn trực tiếp thẻ link vào template cart (ví dụ sections/main-cart-items.liquid):\n{% assign customizationUrl = item.properties._customization_image %}\n{% if customizationUrl %}\n  <div class=\"tee-cart-preview-link\">\n    Preview: <a href=\"{{ customizationUrl }}\" target=\"_blank\" rel=\"noopener\">Xem thiết kế</a>\n  </div>\n{% endif %}\n{% endcomment %}\n\n<!-- [CÁCH 2]: Cấu hình qua biến teeinblue trong theme.liquid -->\n<script type=\"text/javascript\">\n  teeinblue = {\n    addCartPreviewButton: true,\n    cartPreviewButtonText: 'Xem ảnh cá nhân hóa',\n    cartContainerSelectors: ['.cart-item', '.cart__items'],\n    cartItemWrapperSelectors: ['.product-cart-item', '.cart-item'],\n    cartPreviewButtonWrapperSelectors: ['.product-cart-item > div:last-child', '.cart-item__details'],\n    cartPreviewCheckoutLabel: 'Process to Checkout',\n    cartPreviewShowCheckout: false,\n  };\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-limit-number-input-range",
+      "title": "Giới hạn giá trị nhập số (Min / Max Input Range Limit)",
+      "category": "Theme Integration",
+      "description": "Chặn không cho buyer gõ số vượt quá min/max đã thiết lập (Ví dụ ngày sinh 1-31) thay vì chỉ hiện thông báo lỗi (Gồm 2 cách).",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "input-limit",
+        "validation",
+        "date-field",
+        "max-limit"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1]: Bắt sự kiện keydown trên class cụ thể (.custom-validate-date)\n// ==========================================================\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  const inputField = document.querySelector('.custom-validate-date .tee__input--number');\n  if (inputField) {\n    inputField.addEventListener('keydown', (event) => {\n      const min = 1;\n      const max = 31;\n      if (['ArrowUp', 'ArrowDown', 'Backspace', 'Delete', 'Tab', 'Enter'].includes(event.key)) return;\n      const newValue = parseInt((inputField.value || '') + event.key);\n      if (newValue < min || newValue > max || isNaN(newValue)) {\n        event.preventDefault();\n      }\n    });\n  }\n});\n\n// ==========================================================\n// [CÁCH 2]: Tự động quét theo heading text ('Date' / 'Ngày') & quan sát app YMQ\n// ==========================================================\nconst checkInputFieldLimit = () => {\n  document.querySelectorAll('.tee-field').forEach((field) => {\n    const headingSpan = field.querySelector('.tee-field__heading span, .tee-field__label');\n    const numberInput = field.querySelector('.tee-field__input .tee__input--number');\n    if (headingSpan && /date|ngày/i.test(headingSpan.textContent) && numberInput) {\n      const min = 1;\n      const max = 31;\n      numberInput.addEventListener('keydown', (event) => {\n        if (['ArrowUp', 'ArrowDown', 'Backspace', 'Delete', 'Tab', 'Enter'].includes(event.key)) return;\n        const newValue = parseInt((numberInput.value || '') + event.key);\n        if (newValue < min || newValue > max || isNaN(newValue)) {\n          event.preventDefault();\n        }\n      });\n    }\n  });\n};\n\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  checkInputFieldLimit();\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-hide-atc-response-message",
+      "title": "Tự ẩn thông báo 'Item added to cart' sau 3s & Không dính Sticky",
+      "category": "Theme Integration",
+      "description": "Chuyển thông báo thành công sau khi ATC ra khỏi khối nút bấm để không bị sticky che màn hình trên mobile và tự biến mất sau 3-4 giây (Gồm 2 cách).",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "atc-message",
+        "toast",
+        "auto-hide",
+        "mobile-sticky"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1]: Di chuyển .tee-form-responses ra sau #teeFormActions\n// ==========================================================\nfunction moveTeeFormResponses() {\n  const teeFormResponses = document.querySelector('.tee-form-responses');\n  const teeFormActions = document.querySelector('#teeFormActions');\n  if (teeFormResponses && teeFormActions) {\n    teeFormActions.insertAdjacentElement('afterend', teeFormResponses);\n  }\n}\n\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  const atcButton = document.querySelector('.tee-btn--atc');\n  if (atcButton) {\n    atcButton.addEventListener('click', () => { setTimeout(moveTeeFormResponses, 200); });\n  }\n});\n\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  const checkDOM = setInterval(function() {\n    const teeResponse = document.querySelector('.tee-form-responses, .tee-response');\n    if (teeResponse) {\n      clearInterval(checkDOM);\n      teeResponse.style.display = 'block';\n      setTimeout(() => { teeResponse.style.display = 'none'; }, 3500);\n    }\n  }, 100);\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-strikethrough-out-of-stock-variants",
+      "title": "Tự động gạch chéo Swatch Variant hết hàng (Out of Stock)",
+      "category": "Theme Integration",
+      "description": "Quét dữ liệu variants từ /product.js và tự động gắn class 'soldout' (gạch chéo) khi người dùng chọn kết hợp các tùy chọn.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "out-of-stock",
+        "variant-swatch",
+        "soldout",
+        "strikethrough"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nfetch(window.location.pathname + '.js')\n  .then(res => res.json())\n  .then(product => {\n    const variants = product.variants;\n    function updateSwatches() {\n      const selectedOptions = [];\n      document.querySelectorAll('.tee-option').forEach((optEl, idx) => {\n        const checked = optEl.querySelector('input[type=\"radio\"]:checked');\n        selectedOptions[idx] = checked ? checked.value : null;\n      });\n\n      document.querySelectorAll('.tee-option').forEach((optEl, optIndex) => {\n        optEl.querySelectorAll('.tee-radio').forEach(radioEl => {\n          const val = radioEl.querySelector('input')?.value;\n          const conditions = [...selectedOptions];\n          conditions[optIndex] = val;\n          radioEl.classList.remove('available', 'soldout', 'unavailable');\n\n          if (optIndex === 0) {\n            radioEl.classList.add('available');\n            return;\n          }\n\n          const availableVariant = variants.find(v =>\n            (conditions[0] == null || v.option1 === conditions[0]) &&\n            (conditions[1] == null || v.option2 === conditions[1]) &&\n            (conditions[2] == null || v.option3 === conditions[2]) &&\n            v.available\n          );\n\n          if (availableVariant) {\n            radioEl.classList.add('available');\n          } else {\n            radioEl.classList.add('soldout');\n          }\n        });\n      });\n    }\n\n    document.addEventListener('teeinblue-event-component-injected', updateSwatches);\n    document.addEventListener('teeinblue-event-variant-changed', () => { setTimeout(updateSwatches, 100); });\n  });\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Style gạch chéo variant sold out */\n.tee-radio.soldout {\n  position: relative;\n  opacity: 0.5;\n}\n\n.tee-radio.soldout:before {\n  content: \"\";\n  position: absolute;\n  top: 50%;\n  left: 0;\n  right: 0;\n  height: 1.5px;\n  background-color: #ff0000;\n  transform: rotate(-30deg);\n  z-index: 2;\n}"
+        }
+      ]
+    },
+    {
+      "id": "hook-replace-euro-entity-dropdown",
+      "title": "Chuyển mã ký tự '&euro;' thành biểu tượng '€' trong Dropdown Select",
+      "category": "Theme Integration",
+      "description": "Duyệt qua các thẻ select của Teeinblue và tự động convert chuỗi &euro; thành biểu tượng đồng tiền Euro € thật.",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "euro",
+        "currency",
+        "dropdown",
+        "select"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\ndocument.addEventListener('teeinblue-event-component-injected', function() {\n  document.querySelectorAll('.tee-field__select').forEach(function(selectBox) {\n    Array.from(selectBox.options).forEach(function(opt) {\n      if (opt.textContent && opt.textContent.includes('&euro;')) {\n        opt.textContent = opt.textContent.replace(/&euro;/g, '€');\n      }\n    });\n  });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-sync-size-color-on-product-change",
+      "title": "Tự động chọn lại Size / Color khi khách đổi Base Product",
+      "category": "Theme Integration",
+      "description": "Lưu trữ Size và Color người dùng vừa chọn, tự động kích hoạt lại đúng giá trị đó sau khi khách chuyển sang loại sản phẩm khác (Áo thun -> Hoodie).",
+      "type": "js",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "base-product",
+        "available-product",
+        "sync-variant",
+        "ux"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-body",
+          "code": "<script>\nlet lastSelectedSize = null;\nlet lastSelectedColor = null;\n\nfunction saveVariantValues() {\n  const sizeRadio = document.querySelector('.tee-option--size .tee-radio input:checked');\n  const colorRadio = document.querySelector('.tee-option--color .tee-radio input:checked');\n  if (sizeRadio) lastSelectedSize = sizeRadio.value;\n  if (colorRadio) lastSelectedColor = colorRadio.value;\n}\n\nfunction restoreVariantValues() {\n  if (lastSelectedSize) {\n    const matchingSize = document.querySelector('.tee-option--size .tee-radio input[value=\"' + lastSelectedSize + '\"]');\n    if (matchingSize) matchingSize.click();\n  }\n  if (lastSelectedColor) {\n    const matchingColor = document.querySelector('.tee-option--color .tee-radio input[value=\"' + lastSelectedColor + '\"]');\n    if (matchingColor) matchingColor.click();\n  }\n}\n\ndocument.addEventListener('teeinblue-event-component-injected', () => {\n  document.querySelectorAll('.tee-option--size input, .tee-option--color input').forEach(input => {\n    input.addEventListener('change', saveVariantValues);\n  });\n  document.querySelectorAll('.tee-available-products .tee-radio input').forEach(productInput => {\n    productInput.addEventListener('click', () => {\n      setTimeout(restoreVariantValues, 500);\n    });\n  });\n});\n</script>"
+        }
+      ]
+    },
+    {
+      "id": "hook-missing-customization-warning",
+      "title": "Cảnh báo lỗi mất tùy chỉnh (Missing Customization Warning)",
+      "category": "Theme Integration",
+      "description": "Hiển thị hộp cảnh báo màu đỏ nhắc nhở khách hàng reload lại trang nếu phát hiện sản phẩm Teeinblue bị mất _customization_id.",
+      "type": "mixed",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "warning",
+        "cart-error",
+        "customization-id",
+        "recovery"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/teeinblue-customization-warning.liquid",
+          "mode": "create",
+          "code": "{% comment %} Cảnh báo thiếu customization_id trong giỏ hàng {% endcomment %}\n{% for property in item.properties %}\n  {% if property.first contains '_customization_id' and property.last != blank %}\n    {% assign hasTibId = true %}\n    {% break %}\n  {% endif %}\n{% endfor %}\n\n{% if item.product.metafields.teeinblue.campaign_version and hasTibId != true %}\n  <div class=\"teeinblue-warning-no-customization\" style=\"color: #EC0101; border: 2px solid #EC0101; padding: 10px; margin-top: 8px; border-radius: 4px; font-weight: 500;\">\n    Lỗi: Chưa nhận diện được thiết kế cá nhân hóa. Vui lòng xóa mục này và thêm lại từ trang sản phẩm!\n  </div>\n{% endif %}"
+        },
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "<style>\n.teeinblue-warning-no-customization {\n  background: #fff5f5;\n  color: #c53030;\n  border-left: 4px solid #e53e3e;\n  padding: 10px 14px;\n}\n</style>"
+        }
+      ]
+    },
+    {
+      "id": "template-order-confirmation-artwork-image",
+      "title": "Template Email / Phiếu Đóng Gói: Hiển thị hình ảnh Customization",
+      "category": "Theme Integration",
+      "description": "Đoạn mã Liquid chèn vào template Order Confirmation Email hoặc Shopify Order Printer / Packing Slip để hiển thị ảnh artwork sắc nét kèm link download.",
+      "type": "liquid",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "order-email",
+        "packing-slip",
+        "order-printer",
+        "artwork-image"
+      ],
+      "targets": [
+        {
+          "filename": "snippets/tib-order-confirmation-image.liquid",
+          "mode": "create",
+          "code": "{% comment %}\nDùng chèn vào Settings -> Notifications -> Order Confirmation hoặc Shopify Order Printer:\n{% endcomment %}\n{% if line.properties.customization_id %}\n  {% capture customization_image_url %}https://cdn.teeinblue.com/customizations/{{ line.properties.customization_id }}.jpg{% endcapture %}\n  <div style=\"margin-top: 10px;\">\n    <a href=\"{{ customization_image_url }}\" target=\"_blank\">\n      <img src=\"{{ customization_image_url }}\" alt=\"Teeinblue Design\" width=\"120\" style=\"border-radius: 4px; border: 1px solid #e2e8f0; max-width: 100%; display: block;\" />\n    </a>\n    <span style=\"font-size: 12px; color: #718096; display: block; margin-top: 4px;\">\n      <a href=\"{{ customization_image_url }}\" target=\"_blank\" style=\"color: #3182ce; text-decoration: none;\">Xem file in gốc</a>\n    </span>\n  </div>\n{% endif %}"
         }
       ]
     }

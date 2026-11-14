@@ -64,6 +64,7 @@
       isFetchingThemes = false;
     }
   }
+  const READ_Q = 'query ReadFile($themeId: ID!, $fileNames: [String!]) { onlineStore { theme(id: $themeId) { files(first: 1, filenames: $fileNames) { edges { node { filename ... on OnlineStoreThemeFile { body { ... on OnlineStoreThemeFileBodyText { content } } } } } } } } }';
   const LIST_Q = 'query ListFiles($themeId: ID!, $first: Int!, $after: String) { onlineStore { theme(id: $themeId) { files(first: $first, after: $after) { edges { cursor node { filename } } pageInfo { hasNextPage endCursor } } } } }';
   const WRITE_M = 'mutation WriteFiles($themeId: ID!, $files: [OnlineStoreThemeFilesUpsertFileInput!]!) { themeFilesUpsert(themeId: $themeId, files: $files) { upsertedThemeFiles { filename } userErrors { filename code message } } }';
   // UNVERIFIED: dùng cho Undo file mới tạo. Phải xử lý lỗi êm (báo "xoá thủ công").

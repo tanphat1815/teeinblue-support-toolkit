@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T14:41:57.041Z",
+  "updatedAt": "2026-11-13T22:26:17.191Z",
   "snippets": [
     {
       "id": "ui-border-radius-8px",
@@ -140,6 +140,99 @@
           "filename": "assets/teeinblue-custom.css",
           "mode": "append",
           "code": "/* Loading shimmer placeholder */\n#tib-loading-placeholder {\n  width: 100%;\n  padding: 24px;\n  background: #f7f7f7;\n  border-radius: 8px;\n  margin-bottom: 16px;\n  text-align: center;\n  color: #666;\n  font-weight: 500;\n  animation: tibPulse 1.5s infinite;\n}\n\n@keyframes tibPulse {\n  0% { opacity: 0.6; }\n  50% { opacity: 1; }\n  100% { opacity: 0.6; }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-dark-background-theme-styling",
+      "title": "Tối ưu hiển thị cho Theme nền đen (Dark Background)",
+      "category": "Fix CSS",
+      "description": "Căn chỉnh màu sắc giá, viền swatch radio trắng mờ, gạch chéo variant unavailable và màu nền sticky bar cho theme tông màu tối.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "dark-theme",
+        "dark-mode",
+        "ui",
+        "css",
+        "swatch"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Style dành cho Theme nền đen (Dark Theme) */\n.teeinblue-enabled .tee-price--current {\n  color: #fff !important;\n  font-weight: 700;\n}\n\n.teeinblue-enabled .tee-radio {\n  border: 1px solid rgba(255, 255, 255, 0.2) !important;\n  border-radius: 4px !important;\n  background: none !important;\n}\n\n.teeinblue-enabled .tee-radio:hover {\n  box-shadow: 0 1px 3px rgba(255, 255, 255, 0.4);\n  border-color: rgba(255, 255, 255, 0.4) !important;\n}\n\n.teeinblue-enabled .tee-radio.active {\n  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);\n  border-color: rgba(255, 255, 255, 0.6) !important;\n}\n\n.teeinblue-enabled .tee-radio .tee-radio-label {\n  background-color: #000;\n  color: #fff !important;\n  border-radius: 4px !important;\n}\n\n.teeinblue-enabled .tee-radio.tee-radio--unavailable:before {\n  content: \"\";\n  position: absolute;\n  background-color: rgba(255, 255, 255, 0.3);\n  width: calc(100% + 8px);\n  height: 2px;\n  transform: rotate(30deg);\n  bottom: calc(50% - 1px);\n  left: -4px;\n}\n\n@media only screen and (max-width: 768px) {\n  .teeinblue-enabled .tee-form-actions:not(.tee-form-actions--no-sticky) {\n    background-color: #000 !important;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-clipart-grid-4-columns-mobile",
+      "title": "Chỉnh Clipart hiển thị lưới 4 cột / 1 hàng trên Mobile",
+      "category": "Fix CSS",
+      "description": "Sắp xếp danh sách clipart thành lưới gọn gàng 4 cột trên thiết bị di động màn hình nhỏ (max-width: 767px).",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "clipart",
+        "grid",
+        "mobile",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Clipart 4 cột 1 hàng trên Mobile */\n@media only screen and (max-width: 767px) {\n  .tee-field__input .tee-clipart-row {\n    display: grid !important;\n    grid-template-columns: repeat(4, minmax(65px, 1fr)) !important;\n    gap: 8px !important;\n    justify-content: start;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-photo-upload-grid-3-columns",
+      "title": "Chỉnh các trường Upload Photo hiển thị 3 cột trên Desktop",
+      "category": "Fix CSS",
+      "description": "Chia các trường tải ảnh cá nhân thành 3 cột (33.33%) trên desktop và 2 cột trên tablet giúp form ngắn gọn hơn.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "photo-upload",
+        "grid",
+        "flex",
+        "css"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Bố cục Upload Photo nhiều cột */\n.tee-form-wrapper .tee-form-inputs {\n  display: flex !important;\n  flex-wrap: wrap !important;\n}\n\n.tee-form-wrapper .tee-form-inputs > .tee-field--photo {\n  flex: 0 0 50%;\n  max-width: calc(50% - 10px);\n  padding: 0 5px;\n  margin-bottom: 12px;\n}\n\n@media only screen and (min-width: 1025px) {\n  .tee-form-wrapper .tee-form-inputs > .tee-field--photo {\n    flex: 0 0 33.33%;\n    max-width: calc(33.33% - 10px);\n  }\n}\n\n@media only screen and (max-width: 749px) {\n  .tee-form-wrapper .tee-form-inputs > .tee-field--photo {\n    flex: 0 0 100%;\n    max-width: 100%;\n  }\n}"
+        }
+      ]
+    },
+    {
+      "id": "ui-save-amount-badge-above-price",
+      "title": "Hiển thị Badge số tiền tiết kiệm (Save Amount) trên giá",
+      "category": "Fix CSS",
+      "description": "Hiển thị nhãn Save kèm số tiền giảm giá nổi bật ngay phía trên mức giá sản phẩm.",
+      "type": "css",
+      "themes": [
+        "*"
+      ],
+      "tags": [
+        "badge",
+        "save-price",
+        "discount",
+        "ui"
+      ],
+      "targets": [
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": "/* Badge Save Amount trên Price */\n.tee-block.tee-product-price {\n  position: relative;\n  margin-top: 30px !important;\n}\n\n.tee-block.tee-product-price .tee-price--saving {\n  position: absolute;\n  top: -24px;\n  left: 0;\n  background: #e53e3e;\n  color: #fff;\n  font-size: 12px;\n  font-weight: 700;\n  padding: 2px 8px;\n  border-radius: 4px;\n  text-transform: uppercase;\n}"
         }
       ]
     }

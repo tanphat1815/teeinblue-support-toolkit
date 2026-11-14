@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T16:17:21.558Z",
+  "updatedAt": "2026-11-13T22:26:17.193Z",
   "snippets": [
     {
       "id": "dawn-hide-theme-info",
@@ -34,7 +34,7 @@
       "id": "dawn-cart-notification-refresh",
       "title": "Dawn - Cập nhật Cart Notification / Drawer sau khi Add to Cart",
       "category": "Update Cart Count",
-      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added và re-render cart-notification hoặc cart-drawer của Dawn.",
+      "description": "Lắng nghe sự kiện teeinblue-event-after-cart-added và re-render cart-notification hoặc cart-drawer của Dawn (Gồm 2 cách: Cách 1 dùng fetch getSectionsToRender, Cách 2 dùng XMLHttpRequest).",
       "type": "js",
       "themes": [
         "dawn"
@@ -49,7 +49,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-body",
-          "code": "<script>\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  if (!cart) return;\n  let sectionsToRender = cart.getSectionsToRender ? cart.getSectionsToRender().map((section) => section.id).join(',') : '';\n  const sections = sectionsToRender ? await fetch(`?sections=${sectionsToRender}`).then(res => res.json()) : null;\n  let cartContent = await fetch(`${window.Shopify?.routes?.root || '/'}cart.js`).then(res => res.json());\n  if (!sections || !cartContent) return;\n  cartContent = {\n    ...cartContent,\n    key: cartContent.items?.at(0)?.key ?? '',\n    sections: sections\n  };\n  cart.renderContents(cartContent);\n  if (cartContent.items.length === 0) {\n    cart.classList.add('is-empty');\n  }\n});\n</script>"
+          "code": "<script>\n// ==========================================================\n// [CÁCH 1 - Khuyên dùng]: RenderContents qua getSectionsToRender\n// ==========================================================\ndocument.addEventListener('teeinblue-event-after-cart-added', async function () {\n  const cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');\n  if (!cart) return;\n  let sectionsToRender = cart.getSectionsToRender ? cart.getSectionsToRender().map((section) => section.id).join(',') : '';\n  const sections = sectionsToRender ? await fetch('?sections=' + sectionsToRender).then(res => res.json()) : null;\n  let cartContent = await fetch((window.Shopify?.routes?.root || '/') + 'cart.js').then(res => res.json());\n  if (!sections || !cartContent) return;\n  cartContent = {\n    ...cartContent,\n    key: cartContent.items?.at(0)?.key ?? '',\n    sections: sections\n  };\n  cart.renderContents(cartContent);\n  if (cartContent.items.length === 0) {\n    cart.classList.add('is-empty');\n  }\n});\n\n/*\n// ==========================================================\n// [CÁCH 2 - Dự phòng]: Dùng XMLHttpRequest cập nhật trực tiếp cart-notification\n// ==========================================================\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  var request = new XMLHttpRequest();\n  request.open('GET', '/cart.js', true);\n  request.onload = function() {\n    if (this.status >= 200 && this.status < 400) {\n      var data = JSON.parse(this.response);\n      const drawer = document.querySelector('cart-notification');\n      if (drawer) {\n        fetch(window.location.pathname + '?sections=cart-notification-product,cart-notification-button,cart-icon-bubble')\n          .then(res => res.json())\n          .then(res => drawer.renderContents({ key: data.items[0]?.key, sections: res }));\n      }\n    }\n  };\n  request.send();\n});\n*/\n</script>"
         }
       ]
     },
@@ -393,7 +393,7 @@
       "id": "prestige-theme-integration",
       "title": "Prestige - Cấu hình selectors & Ẩn elements theme",
       "category": "Theme Integration",
-      "description": "Cấu hình gallery, formCssSelector, cart drawer selectors và ẩn block price/variants của theme Prestige.",
+      "description": "Cấu hình gallery, formCssSelector, cart drawer selectors của theme Prestige (Tích hợp 2 cách mở drawer / refresh cart).",
       "type": "mixed",
       "themes": [
         "prestige"
@@ -409,7 +409,7 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-head",
-          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: 'product-gallery .product-gallery__image-list',\n    cartContainerSelectors: ['.cart-drawer__items'],\n    cartItemWrapperSelectors: ['.cart-drawer__items .line-item'],\n    formSelector: '[data-block-id=\"buy_buttons\"] product-form form',\n    addToCartWrapperSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons',\n    atcSubmitSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons button[type=\"submit\"]',\n    formCssSelector: '[data-block-id=\"buy_buttons\"] product-form form .v-stack.gap-4',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    onItemAdded: function(item) {,\n  };\n</script>\ndocument.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n    const cartDrawer = document.querySelector('cart-drawer');\n    if (cartDrawer && typeof cartDrawer.show === 'function') {\n      cartDrawer.show();\n    }\n  };"
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    gallerySelector: 'product-gallery .product-gallery__image-list',\n    cartContainerSelectors: ['.cart-drawer__items'],\n    cartItemWrapperSelectors: ['.cart-drawer__items .line-item'],\n    formSelector: '[data-block-id=\"buy_buttons\"] product-form form',\n    addToCartWrapperSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons',\n    atcSubmitSelector: '[data-block-id=\"buy_buttons\"] product-form form buy-buttons button[type=\"submit\"]',\n    formCssSelector: '[data-block-id=\"buy_buttons\"] product-form form .v-stack.gap-4',\n    formEmbedMethod: 'css-selector',\n    formEmbedType: 'before',\n    // [CÁCH 1]: Bắn event cart:refresh trong callback onItemAdded\n    onItemAdded: function(item) {\n      document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));\n      const cartDrawer = document.querySelector('cart-drawer');\n      if (cartDrawer && typeof cartDrawer.show === 'function') {\n        cartDrawer.show();\n      }\n    }\n  };\n</script>\n<script type=\"text/javascript\">\n// [CÁCH 2]: Lắng nghe sự kiện teeinblue-event-after-cart-added và fetch /cart.js cập nhật badge header\ndocument.addEventListener('teeinblue-event-after-cart-added', function() {\n  fetch('/cart.js')\n    .then(res => res.json())\n    .then(data => {\n      var cartCount = document.querySelectorAll('.header__cart-count cart-count, .cart-count');\n      if (cartCount.length) {\n        cartCount.forEach(function(cart) {\n          cart.style.opacity = '1';\n          cart.innerText = data.item_count;\n        });\n      }\n    });\n});\n</script>"
         },
         {
           "filename": "assets/teeinblue-custom.css",

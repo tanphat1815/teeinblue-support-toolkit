@@ -16,11 +16,11 @@ const activeSection = ref<'overview' | 'storefront' | 'admin' | 'code'>('overvie
 <template>
   <div
     v-if="open"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm transition-all"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm transition-all overscroll-contain"
     @click.self="emit('close')"
   >
     <div
-      class="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+      class="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 overscroll-contain"
     >
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/90 px-4 py-3">

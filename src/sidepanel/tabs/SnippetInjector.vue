@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import type { TabContext, Snippet } from '@/shared/types';
 import WorkflowSection from '../components/WorkflowSection.vue';
 import UntitledIcon, { type IconName } from '../components/UntitledIcon.vue';
@@ -113,6 +113,27 @@ function handleViewAllFiltered() {
   activeTabFilter.value = 'all';
   toast.info('Đã mở rộng hiển thị toàn bộ snippets.');
 }
+
+// Modern Web Guidance: Esc dismissal & backdrop containment for drawers/modals
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    if (confirmOpen.value) { confirmOpen.value = false; return; }
+    if (activeDrawerSnippet.value) { activeDrawerSnippet.value = null; return; }
+    if (filterDrawerOpen.value) { filterDrawerOpen.value = false; return; }
+    if (sortDrawerOpen.value) { sortDrawerOpen.value = false; return; }
+    if (helpModalOpen.value) { helpModalOpen.value = false; return; }
+    if (jsonFormatModalOpen.value) { jsonFormatModalOpen.value = false; return; }
+    if (historyOpen.value) { historyOpen.value = false; return; }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown);
+});
 </script>
 
 <template>
@@ -996,10 +1017,10 @@ function handleViewAllFiltered() {
     <!-- Drawer xem chi tiết snippet (trượt từ đáy lên / modal nhẹ nhàng) -->
     <div
       v-if="activeDrawerSnippet"
-      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all"
+      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all overscroll-contain"
       @click.self="closeSnippetDrawer"
     >
-      <div class="max-h-[82vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-2.5 animate-in slide-in-from-bottom duration-200">
+      <div class="max-h-[82vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-2.5 animate-in slide-in-from-bottom duration-200 overscroll-contain">
         <!-- Header drawer -->
         <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
           <div class="min-w-0 flex-1">
@@ -1101,10 +1122,10 @@ function handleViewAllFiltered() {
     <!-- Drawer Bộ lọc (Filter Drawer) -->
     <div
       v-if="filterDrawerOpen"
-      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all"
+      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all overscroll-contain"
       @click.self="filterDrawerOpen = false"
     >
-      <div class="max-h-[82vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-3 animate-in slide-in-from-bottom duration-200">
+      <div class="max-h-[82vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-3 animate-in slide-in-from-bottom duration-200 overscroll-contain">
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-slate-100 pb-2">
           <div class="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
@@ -1227,10 +1248,10 @@ function handleViewAllFiltered() {
     <!-- Drawer Sắp xếp (Sort Drawer) -->
     <div
       v-if="sortDrawerOpen"
-      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all"
+      class="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-2xs transition-all overscroll-contain"
       @click.self="sortDrawerOpen = false"
     >
-      <div class="max-h-[60vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-3 animate-in slide-in-from-bottom duration-200">
+      <div class="max-h-[60vh] w-full rounded-t-2xl bg-white p-3.5 shadow-2xl flex flex-col space-y-3 animate-in slide-in-from-bottom duration-200 overscroll-contain">
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-slate-100 pb-2">
           <div class="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
@@ -1272,8 +1293,8 @@ function handleViewAllFiltered() {
     </div>
 
     <!-- confirm modal -->
-    <div v-if="confirmOpen" class="fixed inset-0 z-40 flex items-end bg-black/40 p-3 sm:items-center">
-      <div class="max-h-[90vh] w-full space-y-2.5 overflow-auto rounded-lg bg-white p-3 shadow-xl">
+    <div v-if="confirmOpen" class="fixed inset-0 z-40 flex items-end bg-black/40 p-3 sm:items-center overscroll-contain" @click.self="confirmOpen = false">
+      <div class="max-h-[90vh] w-full space-y-2.5 overflow-auto rounded-lg bg-white p-3 shadow-xl overscroll-contain">
         <div class="font-semibold">Xác nhận inject</div>
         <p v-if="isLive" class="flex items-center gap-1.5 rounded bg-red-100 p-2 text-xs font-medium text-red-700">
           <UntitledIcon name="alert-triangle" :size="16" class="shrink-0 text-red-600" />

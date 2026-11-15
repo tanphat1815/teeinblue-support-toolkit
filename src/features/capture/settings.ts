@@ -41,3 +41,4 @@ export async function addHistory(r: UploadRecord) {
 export async function removeHistory(id: string) {
   await chrome.storage.local.set({ [KEYS.history]: (await listHistory()).filter((x) => x.id !== id) });
 }
+

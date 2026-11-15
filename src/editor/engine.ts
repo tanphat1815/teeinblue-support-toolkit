@@ -6,30 +6,34 @@ export interface Rect {
   h: number;
 }
 export type Tool =
+  | 'select'
   | 'crop'
   | 'pen'
-  | 'line'
   | 'arrow'
   | 'rect'
   | 'ellipse'
-  | 'highlight'
+  | 'line'
   | 'text'
-  | 'badge'
+  | 'highlight'
   | 'pixelate'
-  | 'redact';
+  | 'redact'
+  | 'badge';
+
 export interface Style {
   color: string;
   width: number;
   font: number;
+  opacity: number;
+  shadow: boolean;
 }
 
 export type Shape =
-  | { t: 'pen'; pts: Pt[]; color: string; width: number }
-  | { t: 'line' | 'arrow' | 'rect' | 'ellipse'; a: Pt; b: Pt; color: string; width: number }
-  | { t: 'highlight'; a: Pt; b: Pt; color: string }
+  | { t: 'pen'; pts: Pt[]; color: string; width: number; opacity: number; shadow: boolean }
+  | { t: 'line' | 'arrow' | 'rect' | 'ellipse'; a: Pt; b: Pt; color: string; width: number; opacity: number; shadow: boolean }
+  | { t: 'highlight'; a: Pt; b: Pt; color: string; opacity: number }
   | { t: 'pixelate' | 'redact'; a: Pt; b: Pt }
-  | { t: 'text'; at: Pt; text: string; color: string; size: number }
-  | { t: 'badge'; at: Pt; n: number; color: string; size: number };
+  | { t: 'text'; at: Pt; text: string; color: string; size: number; opacity: number; shadow: boolean }
+  | { t: 'badge'; at: Pt; n: number; color: string; size: number; shadow: boolean };
 
 interface Snapshot {
   base: HTMLCanvasElement;
@@ -115,34 +119,42 @@ export class EditorEngine {
     this.undoStack.push({ base: this.base, shapes: this.shapes });
     this.restore(s);
   }
+  clearAll() {
+    if (this.shapes.length === 0) return;
+    this.push();
+    this.shapes = [];
+    this.render();
+    this.onChange();
+  }
 
   begin(tool: Tool, p: Pt, st: Style) {
+    if (tool === 'select') return;
     switch (tool) {
       case 'crop':
         this.cropStart = p;
         this.cropDraft = { x: p[0], y: p[1], w: 0, h: 0 };
         break;
       case 'pen':
-        this.draft = { t: 'pen', pts: [p], color: st.color, width: st.width };
+        this.draft = { t: 'pen', pts: [p], color: st.color, width: st.width, opacity: st.opacity, shadow: st.shadow };
         break;
       case 'line':
       case 'arrow':
       case 'rect':
       case 'ellipse':
-        this.draft = { t: tool, a: p, b: p, color: st.color, width: st.width };
+        this.draft = { t: tool, a: p, b: p, color: st.color, width: st.width, opacity: st.opacity, shadow: st.shadow };
         break;
       case 'highlight':
-        this.draft = { t: 'highlight', a: p, b: p, color: st.color };
+        this.draft = { t: 'highlight', a: p, b: p, color: st.color, opacity: st.opacity || 0.35 };
         break;
       case 'pixelate':
       case 'redact':
         this.draft = { t: tool, a: p, b: p };
         break;
       case 'badge':
-        this.add({ t: 'badge', at: p, n: this.badgeNo++, color: st.color, size: st.font });
+        this.add({ t: 'badge', at: p, n: this.badgeNo++, color: st.color, size: st.font, shadow: st.shadow });
         break;
       case 'text':
-        break; // xử lý bằng addText()
+        break;
     }
     this.render();
   }
@@ -173,8 +185,8 @@ export class EditorEngine {
     if (!tiny) this.add(d);
     else this.render();
   }
-  addText(at: Pt, text: string, color: string, size: number) {
-    if (text.trim()) this.add({ t: 'text', at, text, color, size });
+  addText(at: Pt, text: string, color: string, size: number, opacity = 1, shadow = false) {
+    if (text.trim()) this.add({ t: 'text', at, text, color, size, opacity, shadow });
   }
   private add(s: Shape) {
     this.push();
@@ -258,8 +270,20 @@ export class EditorEngine {
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    const applyEffects = (color: string, opacity?: number, shadow?: boolean) => {
+      ctx.globalAlpha = opacity != null ? opacity : 1;
+      if (shadow) {
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+      }
+    };
+
     switch (s.t) {
       case 'pen':
+        applyEffects(s.color, s.opacity, s.shadow);
         ctx.strokeStyle = s.color;
         ctx.lineWidth = s.width;
         ctx.beginPath();
@@ -268,6 +292,7 @@ export class EditorEngine {
         break;
       case 'line':
       case 'arrow': {
+        applyEffects(s.color, s.opacity, s.shadow);
         ctx.strokeStyle = s.color;
         ctx.fillStyle = s.color;
         ctx.lineWidth = s.width;
@@ -288,6 +313,7 @@ export class EditorEngine {
         break;
       }
       case 'rect': {
+        applyEffects(s.color, s.opacity, s.shadow);
         const r = norm(s.a, s.b);
         ctx.strokeStyle = s.color;
         ctx.lineWidth = s.width;
@@ -295,6 +321,7 @@ export class EditorEngine {
         break;
       }
       case 'ellipse': {
+        applyEffects(s.color, s.opacity, s.shadow);
         const r = norm(s.a, s.b);
         ctx.strokeStyle = s.color;
         ctx.lineWidth = s.width;
@@ -305,7 +332,7 @@ export class EditorEngine {
       }
       case 'highlight': {
         const r = norm(s.a, s.b);
-        ctx.globalAlpha = 0.35;
+        ctx.globalAlpha = s.opacity || 0.35;
         ctx.fillStyle = s.color;
         ctx.fillRect(r.x, r.y, r.w, r.h);
         break;
@@ -320,6 +347,7 @@ export class EditorEngine {
         this.pixelate(norm(s.a, s.b));
         break;
       case 'text': {
+        applyEffects(s.color, s.opacity, s.shadow);
         ctx.font = `600 ${s.size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
         ctx.textBaseline = 'top';
         s.text.split('\n').forEach((line, i) => {
@@ -333,6 +361,7 @@ export class EditorEngine {
         break;
       }
       case 'badge':
+        applyEffects(s.color, 1, s.shadow);
         ctx.fillStyle = s.color;
         ctx.beginPath();
         ctx.arc(s.at[0], s.at[1], s.size * 0.8, 0, Math.PI * 2);
@@ -355,7 +384,6 @@ export class EditorEngine {
     return b;
   }
 
-  /** Đảm bảo <= giới hạn Shopify: giảm pixel nếu > 20MP; PNG -> JPEG nếu > 20MB. */
   async exportForUpload(maxBytes: number, maxPixels: number): Promise<{ blob: Blob; ext: 'png' | 'jpg' }> {
     this.render(false);
     try {

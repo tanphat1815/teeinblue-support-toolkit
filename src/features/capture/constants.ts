@@ -17,3 +17,4 @@ export const VIDEO_MIME_PREFERENCE = [
 export const DB = { name: 'tibk-capture', version: 1, store: 'captures' } as const;
 export const KEYS = { settings: 'tibk_capture_settings_v1', history: 'tibk_capture_history_v1' } as const;
 export const HISTORY_MAX = 50;
+

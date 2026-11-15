@@ -144,3 +144,4 @@ export async function deleteShopifyFile(cfg: CaptureSettings, id: string) {
 
 export const randomName = (ext: string) =>
   `tib-support-${Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('')}.${ext}`;
+

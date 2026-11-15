@@ -39,6 +39,7 @@ export async function startAreaCapture() {
 export async function startViewportCapture() {
   guardRate();
   const { tab, id } = await snap();
+  chrome.runtime.sendMessage({ type: 'CAPTURES_UPDATED' }).catch(() => {});
   await openEditor(id, tab.index + 1);
 }
 
@@ -52,6 +53,7 @@ export async function onOverlayDone(
     rec.crop = msg.rect;
     await putRecord(rec);
   }
+  chrome.runtime.sendMessage({ type: 'CAPTURES_UPDATED' }).catch(() => {});
   await openEditor(msg.captureId, (sender.tab?.index ?? 0) + 1, msg.action === 'copy' ? 'copy' : undefined);
 }
 
@@ -60,3 +62,4 @@ export const onOverlayCancel = (captureId: string) => deleteRecord(captureId).ca
 export async function openRecorder() {
   await chrome.windows.create({ url: chrome.runtime.getURL('recorder.html'), type: 'popup', width: 480, height: 700 });
 }
+

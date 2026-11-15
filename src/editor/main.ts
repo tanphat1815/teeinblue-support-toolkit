@@ -3,3 +3,4 @@ import Editor from './Editor.vue';
 import '../sidepanel/shared.css';
 
 createApp(Editor).mount('#app');
+

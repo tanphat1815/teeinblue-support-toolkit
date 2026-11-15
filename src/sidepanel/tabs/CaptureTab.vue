@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { call, errMsg } from '../api';
 import { copyText } from '../clipboard';
 import { useToast } from '../composables/useToast';
@@ -13,17 +13,43 @@ import {
   type UploadRecord
 } from '@/features/capture/settings';
 import { deleteShopifyFile, testConnection } from '@/features/capture/shopify-files';
+import { deleteRecord, listAllRecords, type CaptureRecord } from '@/features/capture/idb';
 
 const toast = useToast();
 const cfg = ref<CaptureSettings | null>(null);
 const history = ref<UploadRecord[]>([]);
+const localCaptures = ref<{ id: string; url: string; createdAt: number; sourceUrl: string }[]>([]);
 const showSettings = ref(false);
 const testing = ref(false);
+
+async function reloadLocalCaptures() {
+  localCaptures.value.forEach((c) => URL.revokeObjectURL(c.url));
+  const all = await listAllRecords();
+  localCaptures.value = all.map((r) => ({
+    id: r.id,
+    url: URL.createObjectURL(r.blob),
+    createdAt: r.createdAt,
+    sourceUrl: r.sourceUrl
+  }));
+}
+
+function handleRuntimeMsg(msg: any) {
+  if (msg?.type === 'CAPTURES_UPDATED') {
+    reloadLocalCaptures();
+  }
+}
 
 onMounted(async () => {
   cfg.value = await loadSettings();
   history.value = await listHistory();
   showSettings.value = !cfg.value.shop;
+  await reloadLocalCaptures();
+  chrome.runtime.onMessage.addListener(handleRuntimeMsg);
+});
+
+onBeforeUnmount(() => {
+  chrome.runtime.onMessage.removeListener(handleRuntimeMsg);
+  localCaptures.value.forEach((c) => URL.revokeObjectURL(c.url));
 });
 
 async function run(type: 'START_AREA_CAPTURE' | 'START_VIEWPORT_CAPTURE' | 'OPEN_RECORDER') {
@@ -33,12 +59,36 @@ async function run(type: 'START_AREA_CAPTURE' | 'START_VIEWPORT_CAPTURE' | 'OPEN
     toast.error(errMsg(e));
   }
 }
+
+async function openInEditor(id: string) {
+  await chrome.tabs.create({ url: chrome.runtime.getURL(`editor.html?id=${id}`) });
+}
+
+async function copyCaptureImage(id: string) {
+  try {
+    const all = await listAllRecords();
+    const target = all.find((r) => r.id === id);
+    if (!target) return toast.error('Ảnh không còn tồn tại.');
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': target.blob })]);
+    toast.success('Đã copy ảnh vào clipboard (Ctrl+V để dán)!');
+  } catch (e) {
+    toast.error(errMsg(e));
+  }
+}
+
+async function removeLocalCapture(id: string) {
+  await deleteRecord(id);
+  await reloadLocalCaptures();
+  toast.success('Đã xóa ảnh khỏi bộ nhớ tạm.');
+}
+
 async function save() {
   if (cfg.value) {
     await saveSettings(cfg.value);
     toast.success('Đã lưu cấu hình.');
   }
 }
+
 async function test() {
   if (!cfg.value) return;
   testing.value = true;
@@ -53,6 +103,7 @@ async function test() {
     testing.value = false;
   }
 }
+
 async function del(r: UploadRecord) {
   if (!cfg.value) return;
   if (!window.confirm('Xoá file này khỏi Shopify Files? Link sẽ ngừng hoạt động.')) return;
@@ -75,7 +126,7 @@ async function del(r: UploadRecord) {
 
       <div class="grid grid-cols-1 gap-2">
         <button
-          class="flex items-center justify-between rounded-lg bg-blue-600 px-3.5 py-2.5 text-xs font-medium text-white shadow-xs hover:bg-blue-700 active:scale-[0.99] transition-all"
+          class="flex items-center justify-between rounded-lg bg-blue-600 px-3.5 py-2.5 text-xs font-medium text-white shadow-xs hover:bg-blue-700 active:scale-[0.99] transition-all cursor-pointer"
           @click="run('START_AREA_CAPTURE')"
         >
           <span class="flex items-center gap-2">
@@ -86,7 +137,7 @@ async function del(r: UploadRecord) {
         </button>
 
         <button
-          class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all"
+          class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer"
           @click="run('START_VIEWPORT_CAPTURE')"
         >
           <UntitledIcon name="link-external" :size="15" class="text-slate-500" />
@@ -94,7 +145,7 @@ async function del(r: UploadRecord) {
         </button>
 
         <button
-          class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all"
+          class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer"
           @click="run('OPEN_RECORDER')"
         >
           <span class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -103,8 +154,63 @@ async function del(r: UploadRecord) {
       </div>
 
       <p class="text-[11px] text-slate-500 leading-normal pt-1">
-        Ảnh chụp sẽ mở trong <b>Editor chuyên dụng</b>: vẽ mũi tên, ghi chú, che thông tin nhạy cảm và bấm <b>Copy ảnh</b> để dán ngay vào Slack / Discord / Zendesk.
+        Ảnh chụp sẽ mở trong <b>Editor chuyên dụng</b> để vẽ mũi tên, ghi chú, che thông tin nhạy cảm và bấm <b>Copy ảnh</b> để dán ngay.
       </p>
+    </div>
+
+    <!-- Local Screenshots Cache / History -->
+    <div class="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          <UntitledIcon name="clock" :size="14" class="text-blue-600" />
+          <span>Lịch sử chụp gần đây ({{ localCaptures.length }})</span>
+        </div>
+        <button
+          v-if="localCaptures.length"
+          class="text-[11px] text-slate-400 hover:text-slate-600 hover:underline cursor-pointer"
+          title="Tải lại danh sách"
+          @click="reloadLocalCaptures"
+        >
+          Làm mới
+        </button>
+      </div>
+
+      <div v-if="localCaptures.length" class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1 pt-1">
+        <div
+          v-for="c in localCaptures"
+          :key="c.id"
+          class="group relative rounded-xl border border-slate-200 overflow-hidden bg-slate-50 hover:border-blue-400 hover:shadow-sm transition-all"
+        >
+          <!-- Thumbnail Image -->
+          <div class="h-24 w-full cursor-pointer overflow-hidden bg-slate-200" @click="openInEditor(c.id)">
+            <img :src="c.url" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
+          </div>
+
+          <!-- Info & Actions -->
+          <div class="p-1.5 flex items-center justify-between bg-white text-[10px] text-slate-500">
+            <span class="truncate max-w-[80px]">{{ new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
+            <div class="flex items-center gap-1">
+              <button
+                class="rounded bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 text-slate-700 font-medium cursor-pointer"
+                title="Copy ảnh"
+                @click.stop="copyCaptureImage(c.id)"
+              >
+                Copy
+              </button>
+              <button
+                class="rounded bg-slate-100 hover:bg-red-50 hover:text-red-600 px-1 py-0.5 text-slate-400 cursor-pointer"
+                title="Xóa ảnh này"
+                @click.stop="removeLocalCapture(c.id)"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="text-center py-4 text-xs text-slate-400">
+        Chưa có ảnh nào trong bộ nhớ tạm. Hãy bấm chụp một ảnh!
+      </div>
     </div>
 
     <!-- Shopify Files Connection Config -->
@@ -196,9 +302,9 @@ async function del(r: UploadRecord) {
       </div>
     </div>
 
-    <!-- Recent History -->
+    <!-- Uploaded to CDN History -->
     <div v-if="history.length" class="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs space-y-2.5">
-      <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Đã upload gần đây ({{ history.length }})</div>
+      <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Đã upload lên CDN ({{ history.length }})</div>
       <ul class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
         <li
           v-for="r in history"

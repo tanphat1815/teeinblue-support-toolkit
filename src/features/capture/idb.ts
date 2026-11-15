@@ -6,6 +6,7 @@ export interface CaptureRecord {
   sourceUrl: string;
   createdAt: number;
   crop?: { x: number; y: number; w: number; h: number }; // px của ảnh gốc
+  dataUrl?: string; // thumbnail base64 phục vụ render nhanh
 }
 
 function open(): Promise<IDBDatabase> {
@@ -41,7 +42,14 @@ export const putRecord = (r: CaptureRecord) => run('readwrite', (s) => s.put(r))
 export const getRecord = (id: string) => run<CaptureRecord | undefined>('readonly', (s) => s.get(id));
 export const deleteRecord = (id: string) => run('readwrite', (s) => s.delete(id));
 
-export async function purgeOld(maxAgeMs = 24 * 3600 * 1000) {
+export async function listAllRecords(): Promise<CaptureRecord[]> {
   const all = await run<CaptureRecord[]>('readonly', (s) => s.getAll());
-  await Promise.all(all.filter((r) => Date.now() - r.createdAt > maxAgeMs).map((r) => deleteRecord(r.id)));
+  return all.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function purgeOld(maxAgeMs = 7 * 24 * 3600 * 1000) {
+  const all = await listAllRecords();
+  // Giữ lại 50 ảnh gần nhất hoặc xóa ảnh cũ hơn 7 ngày
+  const toDelete = all.filter((r, idx) => idx >= 50 || Date.now() - r.createdAt > maxAgeMs);
+  await Promise.all(toDelete.map((r) => deleteRecord(r.id)));
 }

@@ -113,15 +113,15 @@ function onDown(e: PointerEvent) {
   const p = pt(e);
   if (activeTool.value === 'text') {
     const c = canvasEl.value!,
-      r = c.getBoundingClientRect(),
-      w = wrap.value!.getBoundingClientRect();
+      r = c.getBoundingClientRect();
+    // Toạ độ relative trực tiếp theo canvas box (đã bao gồm scale/zoom)
     Object.assign(textBox, {
       show: true,
       value: '',
       cx: p[0],
       cy: p[1],
-      x: r.left - w.left + (p[0] * r.width) / c.width,
-      y: r.top - w.top + (p[1] * r.height) / c.height
+      x: e.clientX - r.left,
+      y: e.clientY - r.top
     });
     e.preventDefault();
     setTimeout(() => document.getElementById('tib-text')?.focus(), 0);
@@ -509,29 +509,43 @@ onBeforeUnmount(() => {
             backgroundColor: '#ffffff'
           }"
         >
-          <canvas
-            ref="canvasEl"
-            class="max-h-[75vh] max-w-[62vw] cursor-crosshair rounded-xl transition-transform"
+          <!-- Bọc canvas & input trong cùng relative container để toạ độ khớp chính xác 100% -->
+          <div
+            class="relative inline-block"
             :style="{
               transform: `scale(${zoom / 100})`,
-              transformOrigin: 'center center',
-              touchAction: 'none'
+              transformOrigin: 'center center'
             }"
-            @pointerdown="onDown"
-            @pointermove="onMove"
-            @pointerup="onUp"
-            @pointercancel="onUp"
-          ></canvas>
+          >
+            <canvas
+              ref="canvasEl"
+              class="max-h-[75vh] max-w-[62vw] cursor-crosshair rounded-xl block"
+              style="touch-action: none"
+              @pointerdown="onDown"
+              @pointermove="onMove"
+              @pointerup="onUp"
+              @pointercancel="onUp"
+            ></canvas>
 
-          <input
-            v-if="textBox.show"
-            id="tib-text"
-            v-model="textBox.value"
-            class="absolute rounded-lg border-2 border-blue-500 bg-white px-3 py-1.5 text-black shadow-xl text-sm outline-none font-semibold"
-            :style="{ left: textBox.x + 'px', top: textBox.y + 'px', color }"
-            placeholder="Nhập chữ, Enter để xác nhận"
-            @blur="commitText"
-          />
+            <!-- Textarea nhập nội dung realtime & hỗ trợ xuống dòng Enter / Shift+Enter -->
+            <textarea
+              v-if="textBox.show"
+              id="tib-text"
+              v-model="textBox.value"
+              rows="1"
+              class="absolute z-20 min-w-[120px] max-w-[400px] resize-none rounded border-2 border-dashed border-blue-500 bg-white/95 px-2 py-1 shadow-xl outline-none font-sans font-semibold leading-snug"
+              :style="{
+                left: textBox.x + 'px',
+                top: textBox.y + 'px',
+                color: color,
+                fontSize: Math.max(13, Math.min(28, currentStyle().font / 2)) + 'px',
+                opacity: opacity / 100
+              }"
+              placeholder="Nhập chữ... (Shift+Enter để xuống dòng, Enter hoặc bấm ra ngoài để hoàn tất)"
+              @keydown.enter.exact.prevent="commitText"
+              @blur="commitText"
+            ></textarea>
+          </div>
         </div>
 
         <!-- Bottom Carousel/Thumbnails of Screenshots -->

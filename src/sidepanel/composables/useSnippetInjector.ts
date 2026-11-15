@@ -218,6 +218,8 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
   const appFilter = ref('All');
   const typeFilter = ref('All');
   const sortBy = ref<'default' | 'alpha-asc' | 'alpha-desc' | 'usage-desc' | 'usage-asc'>('default');
+  const groupBy = ref<'none' | 'category' | 'theme' | 'alpha'>('category');
+  const collapsedGroups = ref<string[]>([]);
   const showAllThemes = ref(false);
   const activeTabFilter = ref<string>('all'); // 'all', 'favorites'
 
@@ -351,6 +353,78 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     return list;
   });
 
+  // ---- grouped list
+  function toggleGroupCollapse(groupKey: string) {
+    if (collapsedGroups.value.includes(groupKey)) {
+      collapsedGroups.value = collapsedGroups.value.filter((g) => g !== groupKey);
+    } else {
+      collapsedGroups.value.push(groupKey);
+    }
+  }
+
+  const groupedSnippets = computed<{ key: string; label: string; count: number; items: Snippet[] }[]>(() => {
+    const list = filtered.value;
+    if (groupBy.value === 'none') {
+      return [{ key: 'all', label: 'Tất cả Snippets', count: list.length, items: list }];
+    }
+
+    if (groupBy.value === 'category') {
+      const map = new Map<string, Snippet[]>();
+      for (const s of list) {
+        const cat = s.category || 'Khác (Others)';
+        if (!map.has(cat)) map.set(cat, []);
+        map.get(cat)!.push(s);
+      }
+      return [...map.entries()].map(([cat, items]) => ({
+        key: cat,
+        label: cat,
+        count: items.length,
+        items
+      }));
+    }
+
+    if (groupBy.value === 'theme') {
+      const map = new Map<string, Snippet[]>();
+      for (const s of list) {
+        let th = 'All Themes';
+        if (!s.themes.includes('*') && s.themes.length > 0) {
+          th = s.themes[0].charAt(0).toUpperCase() + s.themes[0].slice(1);
+        }
+        if (!map.has(th)) map.set(th, []);
+        map.get(th)!.push(s);
+      }
+      // Đưa All Themes lên đầu, còn lại sắp xếp alphabet
+      return [...map.entries()]
+        .sort(([a], [b]) => (a === 'All Themes' ? -1 : b === 'All Themes' ? 1 : a.localeCompare(b)))
+        .map(([th, items]) => ({
+          key: th,
+          label: th,
+          count: items.length,
+          items
+        }));
+    }
+
+    if (groupBy.value === 'alpha') {
+      const map = new Map<string, Snippet[]>();
+      for (const s of list) {
+        const firstChar = (s.title.trim()[0] || '#').toUpperCase();
+        const letter = /[A-Z]/.test(firstChar) ? firstChar : '#';
+        if (!map.has(letter)) map.set(letter, []);
+        map.get(letter)!.push(s);
+      }
+      return [...map.entries()]
+        .sort(([a], [b]) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
+        .map(([letter, items]) => ({
+          key: letter,
+          label: letter === '#' ? '# (Ký tự khác)' : `Chữ cái ${letter}`,
+          count: items.length,
+          items
+        }));
+    }
+
+    return [{ key: 'all', label: 'Tất cả Snippets', count: list.length, items: list }];
+  });
+
   // ---- multi-select (mặc định không tick)
   const selectedIds = ref<string[]>([]);
   const selectedSnippets = computed(() => selectedIds.value.map((id) => snippets.value.find((s) => s.id === id)).filter((s): s is Snippet => !!s));
@@ -471,6 +545,8 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     appFilter.value = 'All';
     typeFilter.value = 'All';
     sortBy.value = 'default';
+    groupBy.value = 'category';
+    collapsedGroups.value = [];
     activeTabFilter.value = 'all';
     customCode.value = '';
     useCustom.value = false;
@@ -530,7 +606,7 @@ export function useSnippetInjector(props: { ctx: { storeHandle: string; themeId:
     admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
     reloadAdminTab, reloadingAdminTab,
     favorites, toggleFavorite, activeTabFilter, filterCounts,
-    query, category, themeFilter, pageFilter, appFilter, typeFilter, sortBy, usageCounts, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
+    query, category, themeFilter, pageFilter, appFilter, typeFilter, sortBy, groupBy, collapsedGroups, toggleGroupCollapse, groupedSnippets, usageCounts, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
     selectedIds, selectedSnippets, toggleSnippet, clearSelection, expandedId, toggleExpand,
     useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
     customFilename, CUSTOM_FOLDERS, MODES,

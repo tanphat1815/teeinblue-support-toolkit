@@ -20,7 +20,7 @@ const {
   admin, themeId, detected, selectedTheme, refreshAdmin, openThemes, openThemeEditor, openThemeCode,
   reloadAdminTab, reloadingAdminTab,
   favorites, toggleFavorite, activeTabFilter, filterCounts,
-  query, category, themeFilter, pageFilter, appFilter, typeFilter, sortBy, usageCounts, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
+  query, category, themeFilter, pageFilter, appFilter, typeFilter, sortBy, groupBy, collapsedGroups, toggleGroupCollapse, groupedSnippets, usageCounts, showAllThemes, categories, availableThemes, PAGE_OPTIONS, APP_OPTIONS, filtered,
   selectedIds, toggleSnippet, clearSelection, expandedId, toggleExpand,
   useCustom, customKind, customFolder, customName, customMode, customCode, addReference,
   customFilename, CUSTOM_FOLDERS, MODES,
@@ -707,89 +707,139 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <label class="flex items-center gap-2 text-xs text-slate-600 pt-0.5">
-          <input v-model="showAllThemes" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-0" />
-          <span>Hiện cả snippet không khớp theme</span>
-        </label>
+        <!-- Tùy chọn Gom nhóm (Group by) & Hiện theme không khớp -->
+        <div class="flex items-center justify-between gap-2 pt-0.5 text-xs">
+          <label class="flex items-center gap-1.5 text-slate-600 cursor-pointer select-none">
+            <input v-model="showAllThemes" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-0" />
+            <span class="text-[11.5px]">Hiện snippet không khớp theme</span>
+          </label>
 
-        <!-- Danh sách Snippet với Tags & Nút Favorite đúng thiết kế (tăng chiều cao hiển thị thoáng) -->
-        <ul class="max-h-[460px] space-y-1.5 overflow-auto pr-0.5">
-          <li
-            v-for="sn in filtered"
-            :key="sn.id"
-            class="tib-snip-card transition-all"
-            :class="selectedIds.includes(sn.id) ? 'selected !border-blue-400 !bg-blue-50/40' : ''"
+          <!-- Group by selector -->
+          <div class="flex items-center gap-1 text-[11px] shrink-0 text-slate-500">
+            <UntitledIcon name="layers-three" :size="12" class="text-slate-400" />
+            <span class="font-medium">Gom nhóm:</span>
+            <select
+              v-model="groupBy"
+              class="h-6 rounded border border-slate-200 bg-white px-1.5 py-0 text-[11px] font-semibold text-slate-700 shadow-2xs focus:border-brand-500 focus:outline-none cursor-pointer"
+            >
+              <option value="category">Chức năng</option>
+              <option value="theme">Theme Shopify</option>
+              <option value="alpha">Chữ cái (A-Z)</option>
+              <option value="none">Không gom</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Danh sách Snippet với Grouping, Tags & Nút Favorite đúng thiết kế -->
+        <div class="max-h-[460px] space-y-2.5 overflow-auto pr-0.5">
+          <div
+            v-for="group in groupedSnippets"
+            :key="group.key"
+            class="space-y-1.5"
           >
-            <div class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                class="rounded border-slate-300 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
-                :checked="selectedIds.includes(sn.id)"
-                @change="toggleSnippet(sn.id)"
-              />
-
-              <!-- Tiêu đề snippet click để chọn/bỏ chọn -->
-              <div class="min-w-0 flex-1 py-0.5">
-                <button
-                  type="button"
-                  class="w-full text-left truncate text-xs font-semibold text-slate-800 hover:text-brand-600 transition-colors"
-                  :title="sn.title"
-                  @click="toggleSnippet(sn.id)"
-                >
-                  {{ sn.title }}
-                </button>
-              </div>
-
-              <!-- Tags bên phải: Theme + Type + Info Drawer + Star + Expand -->
-              <div class="flex items-center gap-1.5 shrink-0" @click.stop>
-                <!-- Tag Theme -->
-                <span
-                  class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                  :class="sn.themes.includes('*') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/60' : 'bg-blue-50 text-blue-700 border border-blue-200/60'"
-                >
-                  {{ sn.themes.includes('*') ? 'All Themes' : (sn.themes[0] || 'Theme') }}
+            <!-- Sticky Group Header (khi có gom nhóm) -->
+            <div
+              v-if="groupBy !== 'none'"
+              class="sticky top-0 z-10 flex items-center justify-between rounded-lg bg-slate-100/95 px-2 py-1 text-[11px] font-bold text-slate-700 backdrop-blur-xs border border-slate-200/80 cursor-pointer select-none hover:bg-slate-200/80 transition-colors shadow-2xs"
+              @click="toggleGroupCollapse(group.key)"
+            >
+              <div class="flex items-center gap-1.5 min-w-0">
+                <UntitledIcon
+                  :name="collapsedGroups.includes(group.key) ? 'chevron-up' : 'chevron-down'"
+                  :size="13"
+                  class="text-slate-400 shrink-0 transition-transform"
+                  :class="collapsedGroups.includes(group.key) ? 'rotate-180' : ''"
+                />
+                <span class="truncate">{{ group.label }}</span>
+                <span class="rounded-full bg-slate-200/90 px-1.5 py-0.2 text-[9.5px] font-semibold text-slate-600 shrink-0">
+                  {{ group.count }}
                 </span>
-
-                <!-- Tag Type -->
-                <span
-                  class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-                  :class="{
-                    'bg-amber-50 text-amber-700 border border-amber-200/60': sn.type === 'js',
-                    'bg-purple-50 text-purple-700 border border-purple-200/60': sn.type === 'css',
-                    'bg-emerald-50 text-emerald-700 border border-emerald-200/60': sn.type === 'liquid',
-                    'bg-slate-100 text-slate-700 border border-slate-200': sn.type === 'mixed' || sn.type === 'json'
-                  }"
-                >
-                  {{ sn.type }}
-                </span>
-
-                <!-- Info Button mở Drawer chi tiết (Title, Desc, Files, Modes) -->
-                <button
-                  type="button"
-                  class="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-0.5"
-                  :title="`Xem chi tiết snippet (Đã inject ${usageCounts[sn.id] || 0} lần)`"
-                  @click="openSnippetDrawer(sn)"
-                >
-                  <UntitledIcon name="info-circle" :size="13" />
-                  <span v-if="usageCounts[sn.id]" class="text-[9.5px] font-mono text-emerald-600 font-bold">
-                    {{ usageCounts[sn.id] }}
-                  </span>
-                </button>
-
-                <!-- Star Favorite Button -->
-                <button
-                  type="button"
-                  class="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors"
-                  :class="favorites.includes(sn.id) ? '!text-amber-400' : ''"
-                  :title="favorites.includes(sn.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
-                  @click="toggleFavorite(sn.id)"
-                >
-                  <UntitledIcon :name="favorites.includes(sn.id) ? 'star-filled' : 'star'" :size="14" />
-                </button>
               </div>
+              <span class="text-[10px] text-slate-400 font-normal shrink-0">
+                {{ collapsedGroups.includes(group.key) ? 'Mở rộng' : 'Thu gọn' }}
+              </span>
             </div>
-          </li>
-        </ul>
+
+            <!-- Danh sách Snippet trong Group -->
+            <ul v-show="!collapsedGroups.includes(group.key)" class="space-y-1.5">
+              <li
+                v-for="sn in group.items"
+                :key="sn.id"
+                class="tib-snip-card transition-all"
+                :class="selectedIds.includes(sn.id) ? 'selected !border-blue-400 !bg-blue-50/40' : ''"
+              >
+                <div class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    class="rounded border-slate-300 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
+                    :checked="selectedIds.includes(sn.id)"
+                    @change="toggleSnippet(sn.id)"
+                  />
+
+                  <!-- Tiêu đề snippet click để chọn/bỏ chọn -->
+                  <div class="min-w-0 flex-1 py-0.5">
+                    <button
+                      type="button"
+                      class="w-full text-left truncate text-xs font-semibold text-slate-800 hover:text-brand-600 transition-colors"
+                      :title="sn.title"
+                      @click="toggleSnippet(sn.id)"
+                    >
+                      {{ sn.title }}
+                    </button>
+                  </div>
+
+                  <!-- Tags bên phải: Theme + Type + Info Drawer + Star + Expand -->
+                  <div class="flex items-center gap-1.5 shrink-0" @click.stop>
+                    <!-- Tag Theme -->
+                    <span
+                      class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                      :class="sn.themes.includes('*') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/60' : 'bg-blue-50 text-blue-700 border border-blue-200/60'"
+                    >
+                      {{ sn.themes.includes('*') ? 'All Themes' : (sn.themes[0] || 'Theme') }}
+                    </span>
+
+                    <!-- Tag Type -->
+                    <span
+                      class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                      :class="{
+                        'bg-amber-50 text-amber-700 border border-amber-200/60': sn.type === 'js',
+                        'bg-purple-50 text-purple-700 border border-purple-200/60': sn.type === 'css',
+                        'bg-emerald-50 text-emerald-700 border border-emerald-200/60': sn.type === 'liquid',
+                        'bg-slate-100 text-slate-700 border border-slate-200': sn.type === 'mixed' || sn.type === 'json'
+                      }"
+                    >
+                      {{ sn.type }}
+                    </span>
+
+                    <!-- Info Button mở Drawer chi tiết (Title, Desc, Files, Modes) -->
+                    <button
+                      type="button"
+                      class="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-0.5"
+                      :title="`Xem chi tiết snippet (Đã inject ${usageCounts[sn.id] || 0} lần)`"
+                      @click="openSnippetDrawer(sn)"
+                    >
+                      <UntitledIcon name="info-circle" :size="13" />
+                      <span v-if="usageCounts[sn.id]" class="text-[9.5px] font-mono text-emerald-600 font-bold">
+                        {{ usageCounts[sn.id] }}
+                      </span>
+                    </button>
+
+                    <!-- Star Favorite Button -->
+                    <button
+                      type="button"
+                      class="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors"
+                      :class="favorites.includes(sn.id) ? '!text-amber-400' : ''"
+                      :title="favorites.includes(sn.id) ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+                      @click="toggleFavorite(sn.id)"
+                    >
+                      <UntitledIcon :name="favorites.includes(sn.id) ? 'star-filled' : 'star'" :size="14" />
+                    </button>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
 
         <!-- Footer Step 2: Selected info + Clear all + View all filtered -->
         <div class="flex items-center justify-between rounded-lg bg-blue-50/80 px-2.5 py-1.5 text-xs text-blue-900 border border-blue-100">

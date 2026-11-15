@@ -40,6 +40,7 @@ const KNOWN_THEME_RULES: { slug: string; name: string; pattern: RegExp }[] = [
   { slug: 'ride', name: 'Ride', pattern: /\b(ride)\b/i },
   { slug: 'colorblock', name: 'Colorblock', pattern: /\b(colorblock)\b/i },
   { slug: 'taste', name: 'Taste', pattern: /\b(taste)\b/i },
+  { slug: 'rise', name: 'Rise', pattern: /\b(rise)\b/i },
   { slug: 'studio', name: 'Studio', pattern: /\b(studio)\b/i },
   { slug: 'origin', name: 'Origin', pattern: /\b(origin)\b/i },
   { slug: 'spotlight', name: 'Spotlight', pattern: /\b(spotlight)\b/i },

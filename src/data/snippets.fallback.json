@@ -21,12 +21,40 @@
         {
           "filename": "layout/theme.liquid",
           "mode": "before-head",
-          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: 'product-form.product-form form.form',\n    gallerySelector: '.grid__item.product__media-wrapper media-gallery',\n    afterPriceBlock: 'inkl. MwSt.',\n  };\n</script>"
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: 'product-form.product-form form.form',\n    gallerySelector: '.grid__item.product__media-wrapper media-gallery',\n  };\n</script>"
         },
         {
           "filename": "assets/teeinblue-custom.css",
           "mode": "append",
-          "code": "/* Dawn: Hide default theme price, variant, quantity and tax */\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .price.price--large,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-radios,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .product-form__quantity {\n  display: none !important;\n}\n\n.teeinblue-enabled .product__tax {\n  display: none !important;\n}\n\n.teeinblue-enabled .tee-product-price {\n  margin-bottom: 0;\n}"
+          "code": ".teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info div[id*=\"price-template--\"],\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-radios,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-selects,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .product-form__quantity {\n  display: none !important;\n}"
+        }
+      ]
+    },
+    {
+      "id": "rise-hide-theme-info",
+      "title": "Rise - Ẩn thông tin theme gốc & Link CSS",
+      "category": "Fix CSS",
+      "description": "Link teeinblue-custom.css, cấu hình window.teeinblue selectors và ẩn giá/variant/quantity mặc định của theme Rise.",
+      "type": "mixed",
+      "themes": [
+        "rise"
+      ],
+      "tags": [
+        "rise",
+        "css",
+        "selector",
+        "hide-elements"
+      ],
+      "targets": [
+        {
+          "filename": "layout/theme.liquid",
+          "mode": "before-head",
+          "code": "{{ 'teeinblue-custom.css' | asset_url | stylesheet_tag }}\n<script type=\"text/javascript\">\n  teeinblue = {\n    formSelector: 'product-form.product-form form.form',\n    gallerySelector: '.grid__item.product__media-wrapper media-gallery',\n  };\n</script>"
+        },
+        {
+          "filename": "assets/teeinblue-custom.css",
+          "mode": "append",
+          "code": ".teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info div[id*=\"price-template--\"],\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-radios,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info variant-selects,\n.teeinblue-enabled:not(.teeinblue-platform-product-enabled) product-info .product-form__quantity {\n  display: none !important;\n}"
         }
       ]
     },

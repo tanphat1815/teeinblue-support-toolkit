@@ -31,6 +31,7 @@ const showSettingsDrawer = ref(false);
 const showScreenshotMenu = ref(false);
 const showRecordMenu = ref(false);
 const showAllHistoryModal = ref(false);
+const showGuideModal = ref(false);
 const testing = ref(false);
 
 async function reloadLocalCaptures() {
@@ -480,7 +481,17 @@ async function delCdnFile(r: UploadRecord) {
           </div>
 
           <div>
-            <label class="block font-medium text-slate-700 mb-1">Chế độ Token</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-medium text-slate-700">Chế độ Token</label>
+              <button
+                type="button"
+                class="flex h-5 w-5 items-center justify-center rounded-md text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                title="Xem hướng dẫn chi tiết cách tạo & lấy token"
+                @click="showGuideModal = true"
+              >
+                <UntitledIcon name="help-circle" :size="14" />
+              </button>
+            </div>
             <select
               v-model="cfg.tokenMode"
               class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 bg-white"
@@ -633,6 +644,91 @@ async function delCdnFile(r: UploadRecord) {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Setup Guide Modal (Hướng dẫn chi tiết từng chế độ Token) -->
+    <div
+      v-if="showGuideModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+      @click.self="showGuideModal = false"
+    >
+      <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div class="flex items-center gap-2">
+            <UntitledIcon name="help-circle" :size="16" class="text-blue-600" />
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Hướng dẫn kết nối Shopify</span>
+          </div>
+          <button class="h-6 w-6 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 flex items-center justify-center" @click="showGuideModal = false">
+            <UntitledIcon name="x-close" :size="14" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-4 pr-1 text-xs text-slate-700 leading-relaxed">
+          <!-- Guide Tab 1: App Partner / Dev Dashboard -->
+          <div class="rounded-xl border border-blue-100 bg-blue-50/50 p-3 space-y-2">
+            <div class="flex items-center gap-1.5 font-bold text-blue-800">
+              <span class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]">1</span>
+              <span>App Partner / Dev Dashboard (Mới 2026)</span>
+            </div>
+            <div class="text-[11px] text-slate-600 space-y-1.5 pl-2">
+              <p>Phù hợp cho app nội bộ tạo trên <strong class="text-slate-800">dev.shopify.com</strong> hoặc Partner Dashboard:</p>
+              <ol class="list-decimal list-inside space-y-1 text-slate-700">
+                <li>Vào <strong class="text-slate-800">Dev Dashboard &gt; Apps &gt; Chọn App &gt; Settings</strong>.</li>
+                <li>Copy <code class="rounded bg-white px-1 font-mono text-blue-700">Client ID</code> và <code class="rounded bg-white px-1 font-mono text-blue-700">Client Secret (shpss_...)</code>.</li>
+                <li>Vào mục <strong class="text-slate-800">Versions</strong> ở menu trái, bấm <strong class="text-slate-800">Create version</strong>.</li>
+                <li>Phần <strong class="text-slate-800">Access scopes</strong>, cấp quyền:
+                  <div class="mt-1 rounded bg-white p-1 font-mono text-[10px] text-emerald-700 border border-slate-200">
+                    write_files, read_files
+                  </div>
+                </li>
+                <li>Bấm <strong class="text-slate-800">Save &amp; Release</strong> version đó.</li>
+                <li>Dán Client ID &amp; Secret vào extension và bấm <strong class="text-blue-700">Kiểm tra kết nối</strong>.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Guide Tab 2: Token tĩnh shpat_ -->
+          <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+            <div class="flex items-center gap-1.5 font-bold text-slate-800">
+              <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-600 text-white text-[10px]">2</span>
+              <span>Token tĩnh (Legacy Custom App)</span>
+            </div>
+            <div class="text-[11px] text-slate-600 space-y-1.5 pl-2">
+              <p>Dành cho các store đã có sẵn Custom App tạo trước ngày 01/01/2026:</p>
+              <ol class="list-decimal list-inside space-y-1 text-slate-700">
+                <li>Vào <strong class="text-slate-800">Settings &gt; Apps and sales channels &gt; Develop apps</strong>.</li>
+                <li>Mở app đã tạo trước đây &gt; tab <strong class="text-slate-800">Configuration</strong>: đảm bảo có quyền <code class="rounded bg-white px-1 font-mono text-emerald-700">write_files, read_files</code>.</li>
+                <li>Vào tab <strong class="text-slate-800">API credentials</strong>, copy chuỗi <code class="rounded bg-white px-1 font-mono text-slate-800">shpat_...</code>.</li>
+                <li>Dán trực tiếp vào ô Token trên extension.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Guide Tab 3: Token Broker Backend -->
+          <div class="rounded-xl border border-purple-100 bg-purple-50/50 p-3 space-y-2">
+            <div class="flex items-center gap-1.5 font-bold text-purple-800">
+              <span class="flex h-4 w-4 items-center justify-center rounded-full bg-purple-600 text-white text-[10px]">3</span>
+              <span>Token Broker Backend (Doanh nghiệp)</span>
+            </div>
+            <div class="text-[11px] text-slate-600 space-y-1 pl-2">
+              <p>Dành cho team có server backend trung gian cấp token ngắn hạn cho nhân viên:</p>
+              <ul class="list-disc list-inside space-y-1 text-slate-700">
+                <li><strong class="text-slate-800">Broker Endpoint URL</strong>: API server của team trả về token tạm.</li>
+                <li><strong class="text-slate-800">Broker Secret Key</strong>: Mật khẩu xác thực nhân viên support.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100 flex justify-end">
+          <button
+            class="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white hover:bg-blue-700 transition-colors"
+            @click="showGuideModal = false"
+          >
+            Đã hiểu
+          </button>
         </div>
       </div>
     </div>

@@ -27,6 +27,14 @@
     "start-area-capture": {
       "suggested_key": { "default": "Alt+Shift+S", "mac": "Alt+Shift+S" },
       "description": "Chụp vùng màn hình (Teeinblue Toolkit)"
+    },
+    "toggle-record": {
+      "suggested_key": { "default": "Alt+Shift+R", "mac": "Alt+Shift+R" },
+      "description": "Bắt đầu / Dừng quay video (Teeinblue Toolkit)"
+    },
+    "pause-record": {
+      "suggested_key": { "default": "Alt+Shift+P", "mac": "Alt+Shift+P" },
+      "description": "Tạm dừng / Tiếp tục quay video (Teeinblue Toolkit)"
     }
   },
   "host_permissions": [

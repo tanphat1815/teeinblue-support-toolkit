@@ -59,7 +59,22 @@ export async function onOverlayDone(
 
 export const onOverlayCancel = (captureId: string) => deleteRecord(captureId).catch(() => {});
 
-export async function openRecorder() {
-  await chrome.windows.create({ url: chrome.runtime.getURL('recorder.html'), type: 'popup', width: 480, height: 700 });
+export async function openRecorder(crop?: { x: number; y: number; w: number; h: number; vw: number; vh: number }) {
+  const cropParam = crop ? `?crop=${encodeURIComponent(JSON.stringify(crop))}` : '';
+  await chrome.windows.create({
+    url: chrome.runtime.getURL(`recorder.html${cropParam}`),
+    type: 'popup',
+    width: 480,
+    height: 700
+  });
+}
+
+export async function startAreaRecord() {
+  const tab = await activeTab();
+  if (!tab?.id) throw new Error('Không tìm thấy tab đang active.');
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['content/record-box-overlay.js']
+  });
 }
 

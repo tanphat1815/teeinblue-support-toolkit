@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import UntitledIcon from '../sidepanel/components/UntitledIcon.vue';
 import { LIMITS, VIDEO_MIME_PREFERENCE } from '@/features/capture/constants';
 import { addHistory, loadSettings } from '@/features/capture/settings';
 import { randomName, uploadToShopifyFiles } from '@/features/capture/shopify-files';
 import { putRecord } from '@/features/capture/idb';
 
-type S = 'idle' | 'recording' | 'stopped' | 'uploading' | 'done';
+type S = 'idle' | 'recording' | 'paused' | 'stopped' | 'uploading' | 'done';
 const state = ref<S>('idle');
 const useMic = ref(false);
 const err = ref('');
@@ -17,10 +17,22 @@ const progress = ref('');
 const previewUrl = ref('');
 let blob: Blob | null = null;
 
+// Nhận tham số toạ độ crop nếu có từ URL
+const urlParams = new URLSearchParams(window.location.search);
+const cropJson = urlParams.get('crop');
+let cropArea: { x: number; y: number; w: number; h: number; vw: number; vh: number } | null = null;
+if (cropJson) {
+  try {
+    cropArea = JSON.parse(decodeURIComponent(cropJson));
+  } catch (_) {}
+}
+
 let rec: MediaRecorder | null = null;
 let display: MediaStream | null = null;
 let mic: MediaStream | null = null;
 let ac: AudioContext | null = null;
+let cropVideo: HTMLVideoElement | null = null;
+let cropAnimId = 0;
 let chunks: Blob[] = [];
 let timer = 0;
 
@@ -33,6 +45,10 @@ const clock = computed(() => {
   return `${m}:${s}`;
 });
 
+function broadcastTimer() {
+  chrome.runtime.sendMessage({ type: 'REC_TICK', clock: clock.value }).catch(() => {});
+}
+
 async function start() {
   err.value = '';
   info.value = '';
@@ -41,24 +57,58 @@ async function start() {
     return;
   }
   try {
-    // getDisplayMedia phải xuất phát từ user gesture click
+    // getDisplayMedia bắt buộc gọi từ user gesture
     display = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 30 },
       audio: true
     });
 
-    const tracks: MediaStreamTrack[] = [...display.getVideoTracks()];
+    let videoStreamToRecord: MediaStream;
+
+    // Nếu người dùng chọn quay theo vùng cụ thể (cropArea)
+    if (cropArea && cropArea.w > 20 && cropArea.h > 20) {
+      cropVideo = document.createElement('video');
+      cropVideo.srcObject = display;
+      cropVideo.muted = true;
+      await cropVideo.play();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = cropArea.w;
+      canvas.height = cropArea.h;
+      const ctx = canvas.getContext('2d')!;
+
+      const ratioX = cropVideo.videoWidth / (cropArea.vw || window.innerWidth);
+      const ratioY = cropVideo.videoHeight / (cropArea.vh || window.innerHeight);
+
+      const sx = cropArea.x * ratioX;
+      const sy = cropArea.y * ratioY;
+      const sw = cropArea.w * ratioX;
+      const sh = cropArea.h * ratioY;
+
+      function renderFrame() {
+        if (!cropVideo || cropVideo.paused || cropVideo.ended) return;
+        ctx.drawImage(cropVideo, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        cropAnimId = requestAnimationFrame(renderFrame);
+      }
+      renderFrame();
+
+      videoStreamToRecord = (canvas as any).captureStream(30);
+    } else {
+      videoStreamToRecord = display;
+    }
+
+    const tracks: MediaStreamTrack[] = [...videoStreamToRecord.getVideoTracks()];
     ac = new AudioContext();
     const dest = ac.createMediaStreamDestination();
     let hasAudio = false;
 
-    // Trộn âm thanh của tab/màn hình
+    // Trộn âm thanh tab / màn hình
     if (display.getAudioTracks().length) {
       ac.createMediaStreamSource(new MediaStream(display.getAudioTracks())).connect(dest);
       hasAudio = true;
     }
 
-    // Trộn âm thanh mic nếu chọn
+    // Trộn âm thanh Micro
     if (useMic.value) {
       try {
         mic = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -86,20 +136,24 @@ async function start() {
 
     rec.onstop = finalize;
 
-    // Khi người dùng bấm nút "Stop sharing" của trình duyệt
+    // Người dùng bấm "Stop sharing" của trình duyệt
     display.getVideoTracks()[0].addEventListener('ended', stop);
 
     rec.start(1000);
     seconds.value = 0;
     state.value = 'recording';
+    broadcastTimer();
 
     timer = window.setInterval(() => {
-      seconds.value++;
-      if (seconds.value === LIMITS.videoMaxSeconds - 30) {
-        info.value = 'Cảnh báo: Còn 30 giây nữa sẽ chạm mốc giới hạn 10 phút!';
-      }
-      if (seconds.value >= LIMITS.videoMaxSeconds) {
-        stop();
+      if (state.value === 'recording') {
+        seconds.value++;
+        broadcastTimer();
+        if (seconds.value === LIMITS.videoMaxSeconds - 30) {
+          info.value = 'Cảnh báo: Còn 30 giây nữa sẽ chạm mốc giới hạn 10 phút!';
+        }
+        if (seconds.value >= LIMITS.videoMaxSeconds) {
+          stop();
+        }
       }
     }, 1000);
   } catch (e: any) {
@@ -110,14 +164,34 @@ async function start() {
   }
 }
 
+function togglePause() {
+  if (!rec) return;
+  if (state.value === 'recording') {
+    rec.pause();
+    state.value = 'paused';
+    chrome.runtime.sendMessage({ type: 'REC_PAUSED_STATE', paused: true }).catch(() => {});
+  } else if (state.value === 'paused') {
+    rec.resume();
+    state.value = 'recording';
+    chrome.runtime.sendMessage({ type: 'REC_PAUSED_STATE', paused: false }).catch(() => {});
+  }
+}
+
 function stop() {
   if (rec && rec.state !== 'inactive') {
     rec.stop();
   }
+  chrome.runtime.sendMessage({ type: 'REC_STOPPED' }).catch(() => {});
 }
 
 function cleanup() {
   clearInterval(timer);
+  if (cropAnimId) cancelAnimationFrame(cropAnimId);
+  if (cropVideo) {
+    cropVideo.pause();
+    cropVideo.srcObject = null;
+    cropVideo = null;
+  }
   display?.getTracks().forEach((t) => t.stop());
   mic?.getTracks().forEach((t) => t.stop());
   ac?.close().catch(() => {});
@@ -201,7 +275,29 @@ function closeWindow() {
   window.close();
 }
 
+// Bắt phím tắt và tin nhắn từ Background / Overlay
+function handleMessage(msg: any) {
+  if (!msg) return;
+  if (msg.type === 'CMD_TOGGLE_RECORD') {
+    if (state.value === 'idle') start();
+    else if (state.value === 'recording' || state.value === 'paused') stop();
+  } else if (msg.type === 'CMD_PAUSE_RECORD' || msg.type === 'REC_TOGGLE_PAUSE') {
+    if (state.value === 'recording' || state.value === 'paused') togglePause();
+  } else if (msg.type === 'REC_STOP') {
+    if (state.value === 'recording' || state.value === 'paused') stop();
+  }
+}
+
+onMounted(() => {
+  chrome.runtime.onMessage.addListener(handleMessage);
+  // Nếu có cropArea truyền từ Overlay, tự động mở hộp thoại stream ngay
+  if (cropArea) {
+    start();
+  }
+});
+
 onBeforeUnmount(() => {
+  chrome.runtime.onMessage.removeListener(handleMessage);
   cleanup();
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
 });
@@ -217,7 +313,9 @@ onBeforeUnmount(() => {
         </div>
         <div>
           <h1 class="text-sm font-bold text-slate-900 leading-none">Teeinblue Recorder</h1>
-          <p class="text-[10px] text-slate-400 mt-0.5">Screen & Tab Video Recording</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">
+            {{ cropArea ? `Vùng chọn: ${cropArea.w} × ${cropArea.h}` : 'Screen & Tab Video Recording' }}
+          </p>
         </div>
       </div>
       <button
@@ -250,9 +348,9 @@ onBeforeUnmount(() => {
           </div>
 
           <div>
-            <h2 class="text-sm font-bold text-slate-900">Sẵn sàng quay màn hình</h2>
+            <h2 class="text-sm font-bold text-slate-900">Sẵn sàng quay video</h2>
             <p class="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-              Hỗ trợ quay <b>Chrome Tab</b> (kèm âm thanh tab), <b>Cửa sổ ứng dụng</b> hoặc <b>Toàn bộ màn hình</b>.
+              Hỗ trợ quay <b>Chrome Tab</b> (kèm âm thanh tab), <b>Cửa sổ</b> hoặc <b>Toàn bộ màn hình</b>.
             </p>
           </div>
 
@@ -280,35 +378,61 @@ onBeforeUnmount(() => {
             <span>Chọn nguồn & Bắt đầu quay</span>
           </button>
 
-          <p class="text-[11px] text-slate-400 leading-normal">
-            * Thời lượng tối đa 10 phút. Định dạng: <b>{{ mime ? ext.toUpperCase() : 'Không hỗ trợ' }}</b>.
-          </p>
+          <!-- Hotkeys Tip -->
+          <div class="rounded-xl bg-slate-50 p-2.5 border border-slate-200 text-left space-y-1">
+            <div class="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+              <span>⌨ Phím tắt nhanh:</span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+              <span>Bắt đầu / Dừng:</span>
+              <kbd class="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-700">Alt+Shift+R</kbd>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+              <span>Tạm dừng / Tiếp tục:</span>
+              <kbd class="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-700">Alt+Shift+P</kbd>
+            </div>
+          </div>
         </div>
       </template>
 
-      <!-- State: RECORDING -->
-      <template v-if="state === 'recording'">
+      <!-- State: RECORDING or PAUSED -->
+      <template v-if="state === 'recording' || state === 'paused'">
         <div class="rounded-2xl border border-red-200 bg-white p-6 shadow-sm text-center space-y-4">
           <div class="flex items-center justify-center gap-2">
-            <span class="h-3.5 w-3.5 rounded-full bg-red-600 animate-ping"></span>
-            <span class="text-xs font-bold text-red-600 uppercase tracking-wider">Đang ghi hình...</span>
+            <span
+              class="h-3 w-3 rounded-full"
+              :class="state === 'recording' ? 'bg-red-600 animate-ping' : 'bg-amber-500'"
+            ></span>
+            <span
+              class="text-xs font-bold uppercase tracking-wider"
+              :class="state === 'recording' ? 'text-red-600' : 'text-amber-600'"
+            >
+              {{ state === 'recording' ? 'Đang ghi hình...' : 'Đang tạm dừng' }}
+            </span>
           </div>
 
           <div class="font-mono text-5xl font-black text-slate-900 tracking-tight">
             {{ clock }}
           </div>
 
-          <p class="text-xs text-slate-500">
-            Giữ cửa sổ này mở trong khi quay. Bấm <b>Dừng quay</b> khi đã thao tác xong.
-          </p>
+          <!-- Controls: Pause & Stop -->
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <button
+              class="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-98 transition-all cursor-pointer"
+              @click="togglePause"
+            >
+              <span>{{ state === 'recording' ? '⏸ Tạm dừng' : '▶ Tiếp tục' }}</span>
+              <kbd class="text-[9px] text-slate-400 font-mono">Alt+Shift+P</kbd>
+            </button>
 
-          <button
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-xs font-bold text-white shadow-md hover:bg-slate-800 active:scale-98 transition-all cursor-pointer"
-            @click="stop"
-          >
-            <span class="h-3 w-3 bg-red-500 rounded-xs"></span>
-            <span>■ Dừng quay</span>
-          </button>
+            <button
+              class="flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 active:scale-98 transition-all cursor-pointer"
+              @click="stop"
+            >
+              <span class="h-2.5 w-2.5 bg-red-500 rounded-xs"></span>
+              <span>■ Dừng quay</span>
+            </button>
+          </div>
         </div>
       </template>
 

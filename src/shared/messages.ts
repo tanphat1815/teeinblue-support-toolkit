@@ -26,4 +26,5 @@ export type Req =
   | { type: 'RELOAD_ADMIN_TAB'; tabId: number }
   | { type: 'START_AREA_CAPTURE' }
   | { type: 'START_VIEWPORT_CAPTURE' }
-  | { type: 'OPEN_RECORDER' };
+  | { type: 'START_AREA_RECORD' }
+  | { type: 'OPEN_RECORDER'; crop?: { x: number; y: number; w: number; h: number; vw: number; vh: number } };

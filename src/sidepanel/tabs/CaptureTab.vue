@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
   localCaptures.value.forEach((c) => URL.revokeObjectURL(c.url));
 });
 
-async function run(type: 'START_AREA_CAPTURE' | 'START_VIEWPORT_CAPTURE' | 'OPEN_RECORDER') {
+async function run(type: 'START_AREA_CAPTURE' | 'START_VIEWPORT_CAPTURE' | 'START_AREA_RECORD' | 'OPEN_RECORDER') {
   try {
     await call({ type });
   } catch (e) {
@@ -166,13 +166,30 @@ async function del(r: UploadRecord) {
           <span>Chụp toàn bộ khung nhìn (Viewport)</span>
         </button>
 
-        <button
-          class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer"
-          @click="run('OPEN_RECORDER')"
-        >
-          <span class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-          <span>Quay video màn hình / Tab</span>
-        </button>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button
+            class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer"
+            title="Kéo khung đỏ để chọn vùng cần quay"
+            @click="run('START_AREA_RECORD')"
+          >
+            <span class="flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-xs border border-red-500 bg-red-100"></span>
+              <span>Quay vùng chọn</span>
+            </span>
+          </button>
+
+          <button
+            class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer"
+            title="Quay toàn màn hình hoặc toàn bộ Tab"
+            @click="run('OPEN_RECORDER')"
+          >
+            <span class="flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+              <span>Quay màn hình</span>
+            </span>
+            <kbd class="rounded bg-slate-100 px-1 py-0.5 text-[9px] font-mono text-slate-500">Alt+Shift+R</kbd>
+          </button>
+        </div>
       </div>
 
       <p class="text-[11px] text-slate-500 leading-normal pt-1">

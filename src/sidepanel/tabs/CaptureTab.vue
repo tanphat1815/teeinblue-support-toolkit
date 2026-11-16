@@ -167,12 +167,11 @@ async function del(r: UploadRecord) {
         </div>
         <button
           v-if="localCaptures.length"
-          class="flex items-center gap-1 text-[11px] text-slate-500 hover:text-blue-600 font-medium transition-colors cursor-pointer"
+          class="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
           title="Tải lại danh sách ảnh chụp"
           @click="reloadLocalCaptures"
         >
-          <UntitledIcon name="refresh-cw" :size="12" />
-          <span>Làm mới</span>
+          <UntitledIcon name="refresh-cw" :size="13" />
         </button>
       </div>
 
@@ -226,11 +225,11 @@ async function del(r: UploadRecord) {
         </div>
         <button
           type="button"
-          class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors p-0.5 cursor-pointer"
+          class="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+          :title="showSettings ? 'Thu gọn' : 'Chỉnh sửa cấu hình'"
           @click.stop="showSettings = !showSettings"
         >
-          <span class="text-[11px] font-medium">{{ showSettings ? 'Thu gọn' : 'Chỉnh sửa' }}</span>
-          <UntitledIcon :name="showSettings ? 'chevron-up' : 'chevron-down'" :size="14" class="text-slate-400" />
+          <UntitledIcon :name="showSettings ? 'chevron-up' : 'chevron-down'" :size="14" />
         </button>
       </div>
 

@@ -9,6 +9,29 @@ export function normalizeShop(v: string): string {
   return s.includes('.') ? s : `${s}.myshopify.com`;
 }
 
+async function bgFetch(
+  url: string,
+  options: { method?: string; headers?: Record<string, string>; body?: string }
+): Promise<{ ok: boolean; status: number; text: string }> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'SHOPIFY_FETCH', url, options },
+      (res: any) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+        if (!res) {
+          return reject(new Error('Background service worker không phản hồi'));
+        }
+        if (res.error) {
+          return reject(new Error(res.error));
+        }
+        resolve(res);
+      }
+    );
+  });
+}
+
 async function getToken(cfg: CaptureSettings, force = false): Promise<string> {
   if (cfg.tokenMode === 'static') {
     if (!cfg.staticToken) throw new Error('Chưa nhập API token trong Settings.');
@@ -24,22 +47,28 @@ async function getToken(cfg: CaptureSettings, force = false): Promise<string> {
     }
 
     const shop = normalizeShop(cfg.shop);
-    const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    const bodyStr = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: cfg.clientId.trim(),
+      client_secret: cfg.clientSecret.trim()
+    }).toString();
+
+    const res = await bgFetch(`https://${shop}/admin/oauth/access_token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: cfg.clientId.trim(),
-        client_secret: cfg.clientSecret.trim()
-      }).toString()
+      body: bodyStr
     });
 
-    const j = await res.json().catch(() => ({}));
+    let j: any = {};
+    try {
+      j = JSON.parse(res.text);
+    } catch {}
+
     if (!res.ok || !j.access_token) {
-      throw new Error(`Shopify Auth lỗi (${res.status}): ${j.error_description || j.error || 'Không lấy được token'}`);
+      throw new Error(`Shopify Auth lỗi (${res.status}): ${j.error_description || j.error || res.text.slice(0, 100)}`);
     }
 
     const expiresIn = Number(j.expires_in) || 86400;
@@ -66,29 +95,41 @@ async function gql<T>(
   retried = false
 ): Promise<T> {
   const token = await getToken(cfg, retried);
-  const res = await fetch(`https://${normalizeShop(cfg.shop)}/admin/api/${cfg.apiVersion}/graphql.json`, {
+  const shop = normalizeShop(cfg.shop);
+  const url = `https://${shop}/admin/api/${cfg.apiVersion}/graphql.json`;
+
+  const res = await bgFetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Shopify-Access-Token': token
+    },
     body: JSON.stringify({ query, variables })
   });
+
   if (res.status === 401 && cfg.tokenMode === 'broker' && !retried) {
     cachedBroker = null;
     return gql<T>(cfg, query, variables, true);
   }
+  if (res.status === 401 && cfg.tokenMode === 'client_credentials' && !retried) {
+    cachedToken = null;
+    return gql<T>(cfg, query, variables, true);
+  }
   if (res.status === 401 || res.status === 403)
     throw new AuthError(`Shopify từ chối token (HTTP ${res.status}). Kiểm tra token/scope write_files, read_files.`);
-  const text = await res.text().catch(() => '');
+
   let json: any = null;
   try {
-    json = text ? JSON.parse(text) : null;
+    json = res.text ? JSON.parse(res.text) : null;
   } catch (e) {
-    throw new Error(`Shopify phản hồi không hợp lệ (HTTP ${res.status}): ${text.slice(0, 100)}`);
+    throw new Error(`Shopify phản hồi không hợp lệ (HTTP ${res.status}): ${res.text.slice(0, 100)}`);
   }
 
-  if (!res.ok) throw new Error(`Shopify HTTP ${res.status}: ${text.slice(0, 100)}`);
+  if (!res.ok) throw new Error(`Shopify HTTP ${res.status}: ${res.text.slice(0, 100)}`);
   if (!json || !json.data) {
     if (json?.errors?.length) throw new Error(JSON.stringify(json.errors));
-    throw new Error(`Shopify HTTP ${res.status}: ${text.slice(0, 100) || 'Không có dữ liệu trả về'}`);
+    throw new Error(`Shopify HTTP ${res.status}: ${res.text.slice(0, 100) || 'Không có dữ liệu trả về'}`);
   }
   if (json.errors?.length) throw new Error(JSON.stringify(json.errors));
   return json.data as T;

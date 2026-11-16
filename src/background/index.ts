@@ -40,6 +40,20 @@ async function handle(req: Req): Promise<unknown> {
     case 'START_VIEWPORT_CAPTURE': return startViewportCapture(req.delay);
     case 'START_AREA_RECORD': return startAreaRecord();
     case 'OPEN_RECORDER': return openRecorder(req.crop);
+    case 'SHOPIFY_FETCH': {
+      try {
+        const res = await fetch(req.url, {
+          method: req.options.method || 'GET',
+          headers: req.options.headers,
+          body: req.options.body
+        });
+        const status = res.status;
+        const text = await res.text();
+        return { ok: res.ok, status, text };
+      } catch (err: any) {
+        return { ok: false, status: 0, error: err.message };
+      }
+    }
     case 'RELOAD_ADMIN_TAB': {
       if (req.tabId) {
         await chrome.tabs.reload(req.tabId);

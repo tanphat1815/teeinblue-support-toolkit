@@ -27,4 +27,5 @@ export type Req =
   | { type: 'START_AREA_CAPTURE'; delay?: number }
   | { type: 'START_VIEWPORT_CAPTURE'; delay?: number }
   | { type: 'START_AREA_RECORD' }
-  | { type: 'OPEN_RECORDER'; crop?: { x: number; y: number; w: number; h: number; vw: number; vh: number } };
+  | { type: 'OPEN_RECORDER'; crop?: { x: number; y: number; w: number; h: number; vw: number; vh: number } }
+  | { type: 'SHOPIFY_FETCH'; url: string; options: { method?: string; headers?: Record<string, string>; body?: string } };

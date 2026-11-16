@@ -498,17 +498,9 @@ onBeforeUnmount(() => {
         </button>
       </aside>
 
-      <!-- Center Canvas Stage with Transparency Grid -->
+      <!-- Center Canvas Stage -->
       <main ref="wrap" class="relative flex flex-1 flex-col items-center justify-center overflow-auto p-6 bg-[#ebedf2]">
-        <div
-          class="relative flex items-center justify-center rounded-2xl shadow-xl border border-slate-300/80 p-2 overflow-hidden"
-          :style="{
-            backgroundImage: `linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%)`,
-            backgroundSize: `20px 20px`,
-            backgroundPosition: `0 0, 0 10px, 10px -10px, -10px 0px`,
-            backgroundColor: '#ffffff'
-          }"
-        >
+        <div class="relative flex items-center justify-center rounded-2xl shadow-xl overflow-hidden bg-white">
           <!-- Bọc canvas & input trong cùng relative container để toạ độ khớp chính xác 100% -->
           <div
             class="relative inline-block"

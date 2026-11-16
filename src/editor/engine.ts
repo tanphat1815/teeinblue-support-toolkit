@@ -234,14 +234,62 @@ export class EditorEngine {
   private drawCrop(r: Rect) {
     const { ctx, canvas } = this;
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    // Vùng mờ bên ngoài khung crop
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
     ctx.fillRect(0, 0, canvas.width, r.y);
     ctx.fillRect(0, r.y, r.x, r.h);
     ctx.fillRect(r.x + r.w, r.y, canvas.width - r.x - r.w, r.h);
     ctx.fillRect(0, r.y + r.h, canvas.width, canvas.height - r.y - r.h);
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = Math.max(2, canvas.width / 600);
+
+    // Đường viền nét đứt (dashed border)
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.5, canvas.width / 800);
+    ctx.setLineDash([6, 6]);
     ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+    // Thước kẻ lưới 3x3 quy tắc 1/3 (Rule of thirds grid lines)
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath();
+    ctx.moveTo(r.x + r.w / 3, r.y); ctx.lineTo(r.x + r.w / 3, r.y + r.h);
+    ctx.moveTo(r.x + (r.w * 2) / 3, r.y); ctx.lineTo(r.x + (r.w * 2) / 3, r.y + r.h);
+    ctx.moveTo(r.x, r.y + r.h / 3); ctx.lineTo(r.x + r.w, r.y + r.h / 3);
+    ctx.moveTo(r.x, r.y + (r.h * 2) / 3); ctx.lineTo(r.x + r.w, r.y + (r.h * 2) / 3);
+    ctx.stroke();
+
+    // 4 góc L-shaped bo góc (Cropper handles)
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(3.5, canvas.width / 400);
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 4;
+    const arm = Math.min(Math.min(r.w, r.h) * 0.25, Math.max(16, canvas.width / 50));
+
+    ctx.beginPath();
+    // Top-Left corner
+    ctx.moveTo(r.x, r.y + arm); ctx.lineTo(r.x, r.y); ctx.lineTo(r.x + arm, r.y);
+    // Top-Right corner
+    ctx.moveTo(r.x + r.w - arm, r.y); ctx.lineTo(r.x + r.w, r.y); ctx.lineTo(r.x + r.w, r.y + arm);
+    // Bottom-Left corner
+    ctx.moveTo(r.x, r.y + r.h - arm); ctx.lineTo(r.x, r.y + r.h); ctx.lineTo(r.x + arm, r.y + r.h);
+    // Bottom-Right corner
+    ctx.moveTo(r.x + r.w - arm, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h); ctx.lineTo(r.x + r.w, r.y + r.h - arm);
+    ctx.stroke();
+
+    // 4 thanh handle ở giữa 4 cạnh
+    const midArm = arm * 0.7;
+    ctx.beginPath();
+    // Top mid
+    ctx.moveTo(r.x + r.w / 2 - midArm / 2, r.y); ctx.lineTo(r.x + r.w / 2 + midArm / 2, r.y);
+    // Bottom mid
+    ctx.moveTo(r.x + r.w / 2 - midArm / 2, r.y + r.h); ctx.lineTo(r.x + r.w / 2 + midArm / 2, r.y + r.h);
+    // Left mid
+    ctx.moveTo(r.x, r.y + r.h / 2 - midArm / 2); ctx.lineTo(r.x, r.y + r.h / 2 + midArm / 2);
+    // Right mid
+    ctx.moveTo(r.x + r.w, r.y + r.h / 2 - midArm / 2); ctx.lineTo(r.x + r.w, r.y + r.h / 2 + midArm / 2);
+    ctx.stroke();
+
     ctx.restore();
   }
 

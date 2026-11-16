@@ -18,14 +18,36 @@
         .stage{position:fixed;inset:0;cursor:crosshair;user-select:none;-webkit-user-select:none;background:#000;font:13px system-ui,sans-serif;overflow:hidden}
         img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;-webkit-user-drag:none}
         .dim{position:absolute;inset:0;background:rgba(0,0,0,.4);pointer-events:none}
-        .sel{position:absolute;border:1px solid #3b82f6;box-shadow:0 0 0 100vmax rgba(0,0,0,.4);display:none;pointer-events:none}
+        .sel{position:absolute;border:1px dashed #ffffff;outline:1px dashed #2563eb;box-shadow:0 0 0 100vmax rgba(0,0,0,.4);display:none;pointer-events:none}
+        /* 4 L-shaped crop corners */
+        .sel .corner{position:absolute;width:12px;height:12px;border:3px solid #ffffff;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+        .sel .c-tl{top:-2px;left:-2px;border-right:none;border-bottom:none}
+        .sel .c-tr{top:-2px;right:-2px;border-left:none;border-bottom:none}
+        .sel .c-bl{bottom:-2px;left:-2px;border-right:none;border-top:none}
+        .sel .c-br{bottom:-2px;right:-2px;border-left:none;border-top:none}
+        /* Mid handles */
+        .sel .handle{position:absolute;background:#ffffff;border:1px solid #2563eb;border-radius:2px;pointer-events:none}
+        .sel .h-t{top:-3px;left:50%;transform:translateX(-50%);width:16px;height:4px}
+        .sel .h-b{bottom:-3px;left:50%;transform:translateX(-50%);width:16px;height:4px}
+        .sel .h-l{left:-3px;top:50%;transform:translateY(-50%);width:4px;height:16px}
+        .sel .h-r{right:-3px;top:50%;transform:translateY(-50%);width:4px;height:16px}
         .hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.92);color:#fff;padding:6px 10px;border-radius:6px;display:flex;gap:10px;align-items:center;cursor:default}
         .bar{position:absolute;display:none;gap:6px;background:#fff;border-radius:6px;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:default}
         button{all:unset;cursor:pointer;padding:4px 10px;border-radius:4px;background:#2563eb;color:#fff;font:600 12px system-ui,sans-serif}
         button.sec{background:#e2e8f0;color:#0f172a} button.x{background:#ef4444}
       </style>
       <div class="stage">
-        <img alt=""><div class="dim"></div><div class="sel"></div>
+        <img alt=""><div class="dim"></div>
+        <div class="sel">
+          <div class="corner c-tl"></div>
+          <div class="corner c-tr"></div>
+          <div class="corner c-bl"></div>
+          <div class="corner c-br"></div>
+          <div class="handle h-t"></div>
+          <div class="handle h-b"></div>
+          <div class="handle h-l"></div>
+          <div class="handle h-r"></div>
+        </div>
         <div class="hint"><span>Kéo để chọn vùng · Enter: chỉnh sửa · Ctrl+C: copy · Esc: huỷ</span><button class="sec" data-a="edit">Cả màn hình</button><button class="x" data-a="cancel">Huỷ</button></div>
         <div class="bar"><button data-a="edit">✎ Chỉnh sửa</button><button class="sec" data-a="copy">⧉ Copy</button><button class="x" data-a="cancel">✕</button></div>
       </div>`;

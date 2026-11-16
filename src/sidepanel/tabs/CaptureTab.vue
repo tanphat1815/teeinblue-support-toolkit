@@ -167,11 +167,12 @@ async function del(r: UploadRecord) {
         </div>
         <button
           v-if="localCaptures.length"
-          class="text-[11px] text-slate-400 hover:text-slate-600 hover:underline cursor-pointer"
-          title="Tải lại danh sách"
+          class="flex items-center gap-1 text-[11px] text-slate-500 hover:text-blue-600 font-medium transition-colors cursor-pointer"
+          title="Tải lại danh sách ảnh chụp"
           @click="reloadLocalCaptures"
         >
-          Làm mới
+          <UntitledIcon name="refresh-cw" :size="12" />
+          <span>Làm mới</span>
         </button>
       </div>
 
@@ -215,16 +216,21 @@ async function del(r: UploadRecord) {
 
     <!-- Shopify Files Connection Config -->
     <div class="rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs space-y-3">
-      <div class="flex items-center justify-between">
+      <div
+        class="flex items-center justify-between cursor-pointer select-none"
+        @click="showSettings = !showSettings"
+      >
         <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">
           <UntitledIcon name="settings-01" :size="14" class="text-blue-600" />
           <span>Cấu hình Shopify Files (Upload)</span>
         </div>
         <button
-          class="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
-          @click="showSettings = !showSettings"
+          type="button"
+          class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors p-0.5 cursor-pointer"
+          @click.stop="showSettings = !showSettings"
         >
-          {{ showSettings ? 'Thu gọn' : 'Chỉnh sửa' }}
+          <span class="text-[11px] font-medium">{{ showSettings ? 'Thu gọn' : 'Chỉnh sửa' }}</span>
+          <UntitledIcon :name="showSettings ? 'chevron-up' : 'chevron-down'" :size="14" class="text-slate-400" />
         </button>
       </div>
 

@@ -23,10 +23,16 @@ async function bgFetch(
         if (!res) {
           return reject(new Error('Background service worker không phản hồi'));
         }
-        if (res.error) {
+        if (!res.ok && res.error) {
           return reject(new Error(res.error));
         }
-        resolve(res);
+        // Background handle trả về data bọc trong res.data
+        const result = res.data || res;
+        resolve({
+          ok: Boolean(result.ok),
+          status: Number(result.status) || 0,
+          text: typeof result.text === 'string' ? result.text : ''
+        });
       }
     );
   });

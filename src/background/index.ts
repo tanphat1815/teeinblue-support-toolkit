@@ -13,8 +13,44 @@ import {
 } from './capture';
 
 const setPanel = () => chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
-chrome.runtime.onInstalled.addListener(setPanel);
-chrome.runtime.onStartup.addListener(setPanel);
+
+function setupShopifyRules() {
+  chrome.declarativeNetRequest?.updateDynamicRules?.({
+    removeRuleIds: [1001],
+    addRules: [
+      {
+        id: 1001,
+        priority: 1,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            {
+              header: 'Origin',
+              operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE
+            }
+          ]
+        },
+        condition: {
+          urlFilter: '*://*.myshopify.com/admin/api/*',
+          resourceTypes: [
+            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+            chrome.declarativeNetRequest.ResourceType.OTHER
+          ]
+        }
+      }
+    ]
+  }).catch(() => {});
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  setPanel();
+  setupShopifyRules();
+});
+chrome.runtime.onStartup.addListener(() => {
+  setPanel();
+  setupShopifyRules();
+});
+setupShopifyRules();
 
 chrome.tabs.onRemoved.addListener((id) => clearTabState(id));
 chrome.tabs.onActivated.addListener((info) => touchTabActive(info.tabId));

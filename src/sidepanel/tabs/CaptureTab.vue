@@ -483,19 +483,52 @@ async function delCdnFile(r: UploadRecord) {
             <label class="block font-medium text-slate-700 mb-1">Chế độ Token</label>
             <select
               v-model="cfg.tokenMode"
-              class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500"
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 bg-white"
             >
-              <option value="broker">Token Broker (Khuyến nghị)</option>
-              <option value="static">Token tĩnh (shpat_...)</option>
+              <option value="client_credentials">App Partner / Dev Dashboard (Khuyến nghị 2026)</option>
+              <option value="static">Token tĩnh (shpat_... / shpua_...)</option>
+              <option value="broker">Token Broker Backend</option>
             </select>
           </div>
 
-          <template v-if="cfg.tokenMode === 'broker'">
+          <template v-if="cfg.tokenMode === 'client_credentials'">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">App Client ID</label>
+              <input
+                v-model="cfg.clientId"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 font-mono text-[11px]"
+                placeholder="316b6bb8fb2547f7432e2a15b4fb7884"
+              />
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">App Client Secret (shpss_...)</label>
+              <input
+                v-model="cfg.clientSecret"
+                type="password"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 font-mono text-[11px]"
+                placeholder="shpss_xxxxxxxxxxxxxxxxxxxxxxxx"
+              />
+            </div>
+          </template>
+
+          <template v-else-if="cfg.tokenMode === 'static'">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Admin API Token (shpat_... hoặc shpua_...)</label>
+              <input
+                v-model="cfg.staticToken"
+                type="password"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 font-mono text-[11px]"
+                placeholder="shpat_... hoặc shpua_..."
+              />
+            </div>
+          </template>
+
+          <template v-else-if="cfg.tokenMode === 'broker'">
             <div>
               <label class="block font-medium text-slate-700 mb-1">Broker Endpoint URL</label>
               <input
                 v-model="cfg.brokerUrl"
-                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 font-mono text-[11px]"
                 placeholder="https://server/api/support-files/token"
               />
             </div>
@@ -504,19 +537,8 @@ async function delCdnFile(r: UploadRecord) {
               <input
                 v-model="cfg.brokerKey"
                 type="password"
-                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500 font-mono text-[11px]"
                 placeholder="Staff key"
-              />
-            </div>
-          </template>
-          <template v-else>
-            <div>
-              <label class="block font-medium text-slate-700 mb-1">Admin API Token (shpat_...)</label>
-              <input
-                v-model="cfg.staticToken"
-                type="password"
-                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-800 outline-none focus:border-blue-500"
-                placeholder="shpat_xxxxxxxxxxxx"
               />
             </div>
           </template>

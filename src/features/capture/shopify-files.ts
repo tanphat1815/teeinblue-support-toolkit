@@ -1,6 +1,7 @@
 import type { CaptureSettings, UploadRecord } from './settings';
 
 class AuthError extends Error {}
+let cachedToken: { token: string; exp: number } | null = null;
 let cachedBroker: { token: string; exp: number } | null = null;
 
 export function normalizeShop(v: string): string {
@@ -10,9 +11,42 @@ export function normalizeShop(v: string): string {
 
 async function getToken(cfg: CaptureSettings, force = false): Promise<string> {
   if (cfg.tokenMode === 'static') {
-    if (!cfg.staticToken) throw new Error('Chưa nhập Admin API token trong Settings.');
-    return cfg.staticToken;
+    if (!cfg.staticToken) throw new Error('Chưa nhập API token trong Settings.');
+    return cfg.staticToken.trim();
   }
+
+  if (cfg.tokenMode === 'client_credentials') {
+    if (!cfg.clientId || !cfg.clientSecret) {
+      throw new Error('Chưa nhập Client ID hoặc Client Secret trong Settings.');
+    }
+    if (!force && cachedToken && cachedToken.exp - Date.now() > 5 * 60_000) {
+      return cachedToken.token;
+    }
+
+    const shop = normalizeShop(cfg.shop);
+    const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: cfg.clientId.trim(),
+        client_secret: cfg.clientSecret.trim()
+      }).toString()
+    });
+
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.access_token) {
+      throw new Error(`Shopify Auth lỗi (${res.status}): ${j.error_description || j.error || 'Không lấy được token'}`);
+    }
+
+    const expiresIn = Number(j.expires_in) || 86400;
+    cachedToken = { token: j.access_token, exp: Date.now() + (expiresIn - 300) * 1000 };
+    return j.access_token;
+  }
+
   if (!cfg.brokerUrl) throw new Error('Chưa cấu hình Token Broker URL trong Settings.');
   if (!force && cachedBroker && cachedBroker.exp - Date.now() > 5 * 60_000) return cachedBroker.token;
   const res = await fetch(cfg.brokerUrl, {

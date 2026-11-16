@@ -3,8 +3,10 @@ import { HISTORY_MAX, KEYS, SHOPIFY_API_VERSION } from './constants';
 export interface CaptureSettings {
   shop: string; // vd: teeinblue-evidence.myshopify.com
   apiVersion: string;
-  tokenMode: 'broker' | 'static';
-  staticToken: string; // chỉ khi tokenMode='static' (token shpat_ cũ)
+  tokenMode: 'broker' | 'static' | 'client_credentials';
+  staticToken: string; // token tĩnh (shpat_... hoặc shpua_...)
+  clientId?: string; // App Client ID (Dev Dashboard)
+  clientSecret?: string; // App Client Secret (shpss_...)
   brokerUrl: string; // vd: https://<server>/api/support-files/token
   brokerKey: string; // khoá xác thực staff với broker
   delaySeconds?: number; // 0, 3, 5, 10
@@ -15,8 +17,10 @@ export interface CaptureSettings {
 export const DEFAULT_SETTINGS: CaptureSettings = {
   shop: '',
   apiVersion: SHOPIFY_API_VERSION,
-  tokenMode: 'broker',
+  tokenMode: 'client_credentials',
   staticToken: '',
+  clientId: '',
+  clientSecret: '',
   brokerUrl: '',
   brokerKey: '',
   delaySeconds: 0,

@@ -245,16 +245,20 @@ async function delCdnFile(r: UploadRecord) {
           @click="showScreenshotMenu = !showScreenshotMenu"
         >
           <div class="flex items-center gap-3">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-transform group-hover:scale-105">
-              <UntitledIcon name="copy" :size="20" />
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md transition-transform group-hover:scale-105">
+              <!-- Camera Icon đẹp & to chuẩn mockup -->
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </div>
             <div class="text-left">
-              <div class="text-xs font-bold text-slate-800">Screenshot</div>
-              <div class="text-[11px] text-slate-400">Capture, select or full page</div>
+              <div class="text-[13px] font-bold text-slate-900 leading-tight">Screenshot</div>
+              <div class="text-[11px] text-slate-500 mt-0.5">Capture, select or full page</div>
             </div>
           </div>
-          <div class="text-slate-400 group-hover:text-blue-600 transition-transform" :class="showScreenshotMenu ? 'rotate-90' : ''">
-            <UntitledIcon name="chevron-down" :size="15" />
+          <div class="flex h-7 w-7 items-center justify-center rounded-full text-blue-600 group-hover:bg-blue-50 transition-all" :class="showScreenshotMenu ? 'rotate-90' : ''">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
           </div>
         </button>
 
@@ -289,16 +293,20 @@ async function delCdnFile(r: UploadRecord) {
           @click="showRecordMenu = !showRecordMenu"
         >
           <div class="flex items-center gap-3">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-105">
-              <span class="text-lg">🎥</span>
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md transition-transform group-hover:scale-105">
+              <!-- Video Cam Icon to tròn chuẩn mockup -->
+              <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4 6a2 2 0 00-2 2v8a2 2 0 002 2h10a2 2 0 002-2v-2.586l3.293 3.293A1 1 0 0021 16V8a1 1 0 00-1.707-.707L16 10.586V8a2 2 0 00-2-2H4z" />
+                <circle cx="9" cy="12" r="1.5" fill="#ffffff" />
+              </svg>
             </div>
             <div class="text-left">
-              <div class="text-xs font-bold text-slate-800">Record</div>
-              <div class="text-[11px] text-slate-400">Record your screen easily</div>
+              <div class="text-[13px] font-bold text-slate-900 leading-tight">Record</div>
+              <div class="text-[11px] text-slate-500 mt-0.5">Record your screen easily</div>
             </div>
           </div>
-          <div class="text-slate-400 group-hover:text-purple-600 transition-transform" :class="showRecordMenu ? 'rotate-90' : ''">
-            <UntitledIcon name="chevron-down" :size="15" />
+          <div class="flex h-7 w-7 items-center justify-center rounded-full text-purple-600 group-hover:bg-purple-50 transition-all" :class="showRecordMenu ? 'rotate-90' : ''">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
           </div>
         </button>
 
@@ -419,20 +427,22 @@ async function delCdnFile(r: UploadRecord) {
           </template>
 
           <!-- Quick Action Hover Bar -->
-          <div class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <span class="text-[9px] text-white/90 font-mono">{{ new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
             <div class="flex items-center gap-1">
               <button
-                class="rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-bold text-slate-800 hover:bg-white"
+                class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/90 text-slate-800 hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-xs"
+                :title="c.kind === 'video' ? 'Tải video về máy' : 'Copy ảnh vào clipboard'"
                 @click.stop="c.kind === 'video' ? downloadCapture(c) : copyCaptureImage(c.id)"
               >
-                {{ c.kind === 'video' ? 'Tải' : 'Copy' }}
+                <UntitledIcon :name="c.kind === 'video' ? 'folder-download' : 'copy'" :size="12" />
               </button>
               <button
-                class="rounded bg-red-600/90 px-1 py-0.5 text-[9px] font-bold text-white hover:bg-red-600"
+                class="flex h-6 w-6 items-center justify-center rounded-lg bg-red-600/90 text-white hover:bg-red-600 hover:scale-105 active:scale-95 transition-all shadow-xs"
+                title="Xóa mục này"
                 @click.stop="removeLocalCapture(c.id)"
               >
-                ✕
+                <UntitledIcon name="x-close" :size="12" />
               </button>
             </div>
           </div>
@@ -536,28 +546,69 @@ async function delCdnFile(r: UploadRecord) {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
       @click.self="showAllHistoryModal = false"
     >
-      <div class="w-full max-w-sm rounded-2xl bg-white p-4 shadow-2xl space-y-3 max-h-[80vh] flex flex-col">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Tất cả ảnh & video ({{ localCaptures.length }})</span>
-          <button class="text-slate-400 hover:text-slate-600" @click="showAllHistoryModal = false">✕</button>
+      <div class="w-full max-w-sm rounded-2xl bg-white p-4 shadow-2xl space-y-3 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div class="flex items-center gap-2">
+            <UntitledIcon name="clock" :size="15" class="text-blue-600" />
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Tất cả ảnh & video ({{ localCaptures.length }})</span>
+          </div>
+          <button class="h-6 w-6 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 flex items-center justify-center" @click="showAllHistoryModal = false">
+            <UntitledIcon name="x-close" :size="14" />
+          </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto space-y-2 pr-1">
+        <div class="flex-1 overflow-y-auto space-y-2.5 pr-1">
           <div
             v-for="c in localCaptures"
             :key="c.id"
-            class="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-2 text-xs hover:bg-slate-100"
+            class="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-2.5 text-xs hover:border-blue-400 hover:bg-white hover:shadow-xs transition-all"
           >
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-base">{{ c.kind === 'video' ? '🎥' : '🖼' }}</span>
-              <div class="truncate">
-                <div class="font-medium text-slate-700 truncate">{{ new Date(c.createdAt).toLocaleString() }}</div>
-                <div class="text-[10px] text-slate-400">{{ c.kind === 'video' ? `${c.duration || 0}s` : 'PNG image' }}</div>
+            <!-- Thumbnail ảnh thật hoặc video preview -->
+            <div
+              class="h-14 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-900 border border-slate-200 cursor-pointer relative flex items-center justify-center"
+              @click="openInEditor(c)"
+            >
+              <template v-if="c.kind === 'video'">
+                <video :src="c.url" class="h-full w-full object-cover opacity-80" muted preload="metadata"></video>
+                <span class="absolute flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white text-[9px]">▶</span>
+                <span v-if="c.duration" class="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[8px] font-mono text-white">
+                  {{ String(Math.floor(c.duration / 60)).padStart(2, '0') }}:{{ String(c.duration % 60).padStart(2, '0') }}
+                </span>
+              </template>
+              <template v-else>
+                <img :src="c.url" class="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+              </template>
+            </div>
+
+            <!-- Meta details -->
+            <div class="min-w-0 flex-1 cursor-pointer" @click="openInEditor(c)">
+              <div class="font-semibold text-slate-800 truncate leading-tight">
+                {{ new Date(c.createdAt).toLocaleDateString([], { month: '2-digit', day: '2-digit' }) }} · {{ new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+              </div>
+              <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 font-medium">
+                <span class="rounded px-1.5 py-0.2" :class="c.kind === 'video' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'">
+                  {{ c.kind === 'video' ? 'Video' : 'Ảnh PNG' }}
+                </span>
+                <span v-if="c.kind === 'video'">{{ c.duration || 0 }}s</span>
               </div>
             </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <button class="rounded border bg-white px-2 py-1 text-[10px] font-semibold text-slate-700" @click="openInEditor(c)">Mở</button>
-              <button class="rounded border bg-white px-1.5 py-1 text-[10px] font-semibold text-red-600" @click="removeLocalCapture(c.id)">✕</button>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                class="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                :title="c.kind === 'video' ? 'Tải video về máy' : 'Copy ảnh vào clipboard'"
+                @click="c.kind === 'video' ? downloadCapture(c) : copyCaptureImage(c.id)"
+              >
+                <UntitledIcon :name="c.kind === 'video' ? 'folder-download' : 'copy'" :size="13" />
+              </button>
+              <button
+                class="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                title="Xóa mục này"
+                @click="removeLocalCapture(c.id)"
+              >
+                <UntitledIcon name="x-close" :size="13" />
+              </button>
             </div>
           </div>
         </div>

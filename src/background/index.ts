@@ -85,7 +85,8 @@ async function handle(req: Req): Promise<unknown> {
         const res = await fetch(req.url, {
           method: req.options.method || 'GET',
           headers: req.options.headers,
-          body: req.options.body
+          body: req.options.body,
+          credentials: 'omit' // Rất quan trọng: Ngăn trình duyệt tự động gửi session cookie của admin làm Shopify chuyển hướng sang OAuth UI
         });
         const status = res.status;
         const text = await res.text();

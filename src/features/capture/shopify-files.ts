@@ -12,26 +12,32 @@ export function normalizeShop(v: string): string {
 async function bgFetch(
   url: string,
   options: { method?: string; headers?: Record<string, string>; body?: string }
-): Promise<{ ok: boolean; status: number; text: string }> {
+): Promise<{ ok: boolean; status: number; text: string; redirected?: boolean; finalUrl?: string }> {
+  console.log('[Capture-Sidepanel] Invoking bgFetch:', url, options);
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
       { type: 'SHOPIFY_FETCH', url, options },
       (res: any) => {
         if (chrome.runtime.lastError) {
+          console.error('[Capture-Sidepanel] runtime error:', chrome.runtime.lastError);
           return reject(new Error(chrome.runtime.lastError.message));
         }
         if (!res) {
+          console.error('[Capture-Sidepanel] No response from background service worker');
           return reject(new Error('Background service worker không phản hồi'));
         }
         if (!res.ok && res.error) {
+          console.error('[Capture-Sidepanel] Error response:', res.error);
           return reject(new Error(res.error));
         }
-        // Background handle trả về data bọc trong res.data
         const result = res.data || res;
+        console.log('[Capture-Sidepanel] bgFetch result:', result.status, 'len:', result.text?.length);
         resolve({
           ok: Boolean(result.ok),
           status: Number(result.status) || 0,
-          text: typeof result.text === 'string' ? result.text : ''
+          text: typeof result.text === 'string' ? result.text : '',
+          redirected: result.redirected,
+          finalUrl: result.finalUrl
         });
       }
     );

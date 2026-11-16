@@ -77,6 +77,10 @@ async function handle(req: Req): Promise<unknown> {
     case 'START_AREA_RECORD': return startAreaRecord();
     case 'OPEN_RECORDER': return openRecorder(req.crop);
     case 'SHOPIFY_FETCH': {
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request URL:', req.url);
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request Method:', req.options.method || 'GET');
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request Headers:', req.options.headers);
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request Body:', req.options.body);
       try {
         const res = await fetch(req.url, {
           method: req.options.method || 'GET',
@@ -85,8 +89,12 @@ async function handle(req: Req): Promise<unknown> {
         });
         const status = res.status;
         const text = await res.text();
-        return { ok: res.ok, status, text };
+        console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Response Status:', status, 'Redirected:', res.redirected, 'URL:', res.url);
+        console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Response Headers:', [...res.headers.entries()]);
+        console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Response Text Preview:', text.slice(0, 500));
+        return { ok: res.ok, status, text, redirected: res.redirected, finalUrl: res.url };
       } catch (err: any) {
+        console.error('[TIB-Toolkit] [SHOPIFY_FETCH] Error:', err);
         return { ok: false, status: 0, error: err.message };
       }
     }

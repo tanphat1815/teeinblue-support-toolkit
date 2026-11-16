@@ -4,6 +4,7 @@ import UntitledIcon from '../sidepanel/components/UntitledIcon.vue';
 import { LIMITS, VIDEO_MIME_PREFERENCE } from '@/features/capture/constants';
 import { addHistory, loadSettings } from '@/features/capture/settings';
 import { randomName, uploadToShopifyFiles } from '@/features/capture/shopify-files';
+import { putRecord } from '@/features/capture/idb';
 
 type S = 'idle' | 'recording' | 'stopped' | 'uploading' | 'done';
 const state = ref<S>('idle');
@@ -132,6 +133,20 @@ function finalize() {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
   previewUrl.value = URL.createObjectURL(blob);
   state.value = 'stopped';
+
+  // Tự động lưu video vào IndexedDB (Lịch sử cục bộ)
+  const videoId = crypto.randomUUID();
+  putRecord({
+    id: videoId,
+    blob,
+    sourceUrl: 'screen-recording',
+    createdAt: Date.now(),
+    kind: 'video',
+    duration: seconds.value
+  }).then(() => {
+    chrome.runtime.sendMessage({ type: 'CAPTURES_UPDATED' }).catch(() => {});
+  }).catch((e) => console.warn('Lỗi lưu video local:', e));
+
   if (blob.size > LIMITS.videoMaxBytes) {
     err.value = 'Video vượt quá 1 GB, không thể upload tự động lên Shopify Files.';
   }

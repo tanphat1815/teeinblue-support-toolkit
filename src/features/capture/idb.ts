@@ -5,6 +5,8 @@ export interface CaptureRecord {
   blob: Blob;
   sourceUrl: string;
   createdAt: number;
+  kind?: 'image' | 'video';
+  duration?: number; // số giây (đối với video)
   crop?: { x: number; y: number; w: number; h: number }; // px của ảnh gốc
   dataUrl?: string; // thumbnail base64 phục vụ render nhanh
 }
@@ -49,7 +51,7 @@ export async function listAllRecords(): Promise<CaptureRecord[]> {
 
 export async function purgeOld(maxAgeMs = 7 * 24 * 3600 * 1000) {
   const all = await listAllRecords();
-  // Giữ lại 50 ảnh gần nhất hoặc xóa ảnh cũ hơn 7 ngày
+  // Giữ lại 50 mục gần nhất hoặc xóa mục cũ hơn 7 ngày
   const toDelete = all.filter((r, idx) => idx >= 50 || Date.now() - r.createdAt > maxAgeMs);
   await Promise.all(toDelete.map((r) => deleteRecord(r.id)));
 }

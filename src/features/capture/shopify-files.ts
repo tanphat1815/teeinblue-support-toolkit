@@ -77,8 +77,19 @@ async function gql<T>(
   }
   if (res.status === 401 || res.status === 403)
     throw new AuthError(`Shopify từ chối token (HTTP ${res.status}). Kiểm tra token/scope write_files, read_files.`);
-  const json = await res.json().catch(() => null);
-  if (!res.ok || !json) throw new Error(`Shopify HTTP ${res.status}`);
+  const text = await res.text().catch(() => '');
+  let json: any = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch (e) {
+    throw new Error(`Shopify phản hồi không hợp lệ (HTTP ${res.status}): ${text.slice(0, 100)}`);
+  }
+
+  if (!res.ok) throw new Error(`Shopify HTTP ${res.status}: ${text.slice(0, 100)}`);
+  if (!json || !json.data) {
+    if (json?.errors?.length) throw new Error(JSON.stringify(json.errors));
+    throw new Error(`Shopify HTTP ${res.status}: ${text.slice(0, 100) || 'Không có dữ liệu trả về'}`);
+  }
   if (json.errors?.length) throw new Error(JSON.stringify(json.errors));
   return json.data as T;
 }

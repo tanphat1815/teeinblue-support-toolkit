@@ -36,8 +36,8 @@ async function handle(req: Req): Promise<unknown> {
     case 'PREVIEW_INJECT': return previewInject(req.adminTabId, req.themeId, req.targets);
     case 'FETCH_SNIPPETS': return loadSnippets(req.sourceUrl, req.force);
     case 'OPEN_THEMES': return openThemes(req.storeHandle);
-    case 'START_AREA_CAPTURE': return startAreaCapture();
-    case 'START_VIEWPORT_CAPTURE': return startViewportCapture();
+    case 'START_AREA_CAPTURE': return startAreaCapture(req.delay);
+    case 'START_VIEWPORT_CAPTURE': return startViewportCapture(req.delay);
     case 'START_AREA_RECORD': return startAreaRecord();
     case 'OPEN_RECORDER': return openRecorder(req.crop);
     case 'RELOAD_ADMIN_TAB': {

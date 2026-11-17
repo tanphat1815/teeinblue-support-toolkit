@@ -1,6 +1,7 @@
 import type { CaptureSettings, UploadRecord } from './settings';
 
 class AuthError extends Error {}
+let cachedToken: { token: string; exp: number } | null = null;
 let cachedBroker: { token: string; exp: number } | null = null;
 
 export function normalizeShop(v: string): string {
@@ -8,11 +9,85 @@ export function normalizeShop(v: string): string {
   return s.includes('.') ? s : `${s}.myshopify.com`;
 }
 
+async function bgFetch(
+  url: string,
+  options: { method?: string; headers?: Record<string, string>; body?: string }
+): Promise<{ ok: boolean; status: number; text: string; redirected?: boolean; finalUrl?: string }> {
+  console.log('[Capture-Sidepanel] Invoking bgFetch:', url, options);
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'SHOPIFY_FETCH', url, options },
+      (res: any) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Capture-Sidepanel] runtime error:', chrome.runtime.lastError);
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+        if (!res) {
+          console.error('[Capture-Sidepanel] No response from background service worker');
+          return reject(new Error('Background service worker không phản hồi'));
+        }
+        if (!res.ok && res.error) {
+          console.error('[Capture-Sidepanel] Error response:', res.error);
+          return reject(new Error(res.error));
+        }
+        const result = res.data || res;
+        console.log('[Capture-Sidepanel] bgFetch result:', result.status, 'len:', result.text?.length);
+        resolve({
+          ok: Boolean(result.ok),
+          status: Number(result.status) || 0,
+          text: typeof result.text === 'string' ? result.text : '',
+          redirected: result.redirected,
+          finalUrl: result.finalUrl
+        });
+      }
+    );
+  });
+}
+
 async function getToken(cfg: CaptureSettings, force = false): Promise<string> {
   if (cfg.tokenMode === 'static') {
-    if (!cfg.staticToken) throw new Error('Chưa nhập Admin API token trong Settings.');
-    return cfg.staticToken;
+    if (!cfg.staticToken) throw new Error('Chưa nhập API token trong Settings.');
+    return cfg.staticToken.trim();
   }
+
+  if (cfg.tokenMode === 'client_credentials') {
+    if (!cfg.clientId || !cfg.clientSecret) {
+      throw new Error('Chưa nhập Client ID hoặc Client Secret trong Settings.');
+    }
+    if (!force && cachedToken && cachedToken.exp - Date.now() > 5 * 60_000) {
+      return cachedToken.token;
+    }
+
+    const shop = normalizeShop(cfg.shop);
+    const bodyStr = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: cfg.clientId.trim(),
+      client_secret: cfg.clientSecret.trim()
+    }).toString();
+
+    const res = await bgFetch(`https://${shop}/admin/oauth/access_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: bodyStr
+    });
+
+    let j: any = {};
+    try {
+      j = JSON.parse(res.text);
+    } catch {}
+
+    if (!res.ok || !j.access_token) {
+      throw new Error(`Shopify Auth lỗi (${res.status}): ${j.error_description || j.error || res.text.slice(0, 100)}`);
+    }
+
+    const expiresIn = Number(j.expires_in) || 86400;
+    cachedToken = { token: j.access_token, exp: Date.now() + (expiresIn - 300) * 1000 };
+    return j.access_token;
+  }
+
   if (!cfg.brokerUrl) throw new Error('Chưa cấu hình Token Broker URL trong Settings.');
   if (!force && cachedBroker && cachedBroker.exp - Date.now() > 5 * 60_000) return cachedBroker.token;
   const res = await fetch(cfg.brokerUrl, {
@@ -32,19 +107,42 @@ async function gql<T>(
   retried = false
 ): Promise<T> {
   const token = await getToken(cfg, retried);
-  const res = await fetch(`https://${normalizeShop(cfg.shop)}/admin/api/${cfg.apiVersion}/graphql.json`, {
+  const shop = normalizeShop(cfg.shop);
+  const url = `https://${shop}/admin/api/${cfg.apiVersion}/graphql.json`;
+
+  const res = await bgFetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Shopify-Access-Token': token
+    },
     body: JSON.stringify({ query, variables })
   });
+
   if (res.status === 401 && cfg.tokenMode === 'broker' && !retried) {
     cachedBroker = null;
     return gql<T>(cfg, query, variables, true);
   }
+  if (res.status === 401 && cfg.tokenMode === 'client_credentials' && !retried) {
+    cachedToken = null;
+    return gql<T>(cfg, query, variables, true);
+  }
   if (res.status === 401 || res.status === 403)
     throw new AuthError(`Shopify từ chối token (HTTP ${res.status}). Kiểm tra token/scope write_files, read_files.`);
-  const json = await res.json().catch(() => null);
-  if (!res.ok || !json) throw new Error(`Shopify HTTP ${res.status}`);
+
+  let json: any = null;
+  try {
+    json = res.text ? JSON.parse(res.text) : null;
+  } catch (e) {
+    throw new Error(`Shopify phản hồi không hợp lệ (HTTP ${res.status}): ${res.text.slice(0, 100)}`);
+  }
+
+  if (!res.ok) throw new Error(`Shopify HTTP ${res.status}: ${res.text.slice(0, 100)}`);
+  if (!json || !json.data) {
+    if (json?.errors?.length) throw new Error(JSON.stringify(json.errors));
+    throw new Error(`Shopify HTTP ${res.status}: ${res.text.slice(0, 100) || 'Không có dữ liệu trả về'}`);
+  }
   if (json.errors?.length) throw new Error(JSON.stringify(json.errors));
   return json.data as T;
 }

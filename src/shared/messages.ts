@@ -24,7 +24,8 @@ export type Req =
   | { type: 'FETCH_SNIPPETS'; sourceUrl: string; force?: boolean }
   | { type: 'OPEN_THEMES'; storeHandle: string }
   | { type: 'RELOAD_ADMIN_TAB'; tabId: number }
-  | { type: 'START_AREA_CAPTURE' }
-  | { type: 'START_VIEWPORT_CAPTURE' }
+  | { type: 'START_AREA_CAPTURE'; delay?: number }
+  | { type: 'START_VIEWPORT_CAPTURE'; delay?: number }
   | { type: 'START_AREA_RECORD' }
-  | { type: 'OPEN_RECORDER'; crop?: { x: number; y: number; w: number; h: number; vw: number; vh: number } };
+  | { type: 'OPEN_RECORDER'; crop?: { x: number; y: number; w: number; h: number; vw: number; vh: number } }
+  | { type: 'SHOPIFY_FETCH'; url: string; options: { method?: string; headers?: Record<string, string>; body?: string } };

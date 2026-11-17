@@ -29,16 +29,55 @@ function guardRate() {
   lastSnapAt = now;
 }
 
-export async function startAreaCapture() {
-  guardRate();
-  const { tab, id, dataUrl } = await snap();
-  await chrome.scripting.executeScript({ target: { tabId: tab.id! }, files: ['content/capture-overlay.js'] });
-  await chrome.tabs.sendMessage(tab.id!, { type: 'TIBK_OVERLAY_START', captureId: id, dataUrl });
+async function waitDelay(tabId: number, delay?: number) {
+  if (!delay || delay <= 0) return;
+  // Hiển thị overlay countdown 3... 2... 1...
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (sec: number) => {
+      const el = document.createElement('div');
+      el.id = '__tibk_countdown';
+      el.style.cssText =
+        'all:initial;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:system-ui,sans-serif;font-size:80px;font-weight:900;color:#ffffff;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);width:140px;height:140px;border-radius:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:2147483647;pointer-events:none;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);';
+      document.documentElement.appendChild(el);
+
+      let left = sec;
+      el.textContent = String(left);
+      const timer = setInterval(() => {
+        left--;
+        if (left <= 0) {
+          clearInterval(timer);
+          el.remove();
+        } else {
+          el.textContent = String(left);
+          el.style.transform = 'translate(-50%,-50%) scale(1.2)';
+          setTimeout(() => {
+            el.style.transform = 'translate(-50%,-50%) scale(1)';
+          }, 150);
+        }
+      }, 1000);
+    },
+    args: [delay]
+  });
+  await new Promise((r) => setTimeout(r, delay * 1000));
 }
 
-export async function startViewportCapture() {
+export async function startAreaCapture(delay?: number) {
   guardRate();
-  const { tab, id } = await snap();
+  const tab = await activeTab();
+  if (!tab?.id) throw new Error('Không tìm thấy tab active.');
+  if (delay && delay > 0) await waitDelay(tab.id, delay);
+  const { id, dataUrl } = await snap();
+  await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/capture-overlay.js'] });
+  await chrome.tabs.sendMessage(tab.id, { type: 'TIBK_OVERLAY_START', captureId: id, dataUrl });
+}
+
+export async function startViewportCapture(delay?: number) {
+  guardRate();
+  const tab = await activeTab();
+  if (!tab?.id) throw new Error('Không tìm thấy tab active.');
+  if (delay && delay > 0) await waitDelay(tab.id, delay);
+  const { id } = await snap();
   chrome.runtime.sendMessage({ type: 'CAPTURES_UPDATED' }).catch(() => {});
   await openEditor(id, tab.index + 1);
 }

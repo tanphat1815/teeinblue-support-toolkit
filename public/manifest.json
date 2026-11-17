@@ -21,7 +21,8 @@
     "tabs",
     "webNavigation",
     "clipboardWrite",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "declarativeNetRequest"
   ],
   "commands": {
     "start-area-capture": {

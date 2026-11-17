@@ -13,8 +13,44 @@ import {
 } from './capture';
 
 const setPanel = () => chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
-chrome.runtime.onInstalled.addListener(setPanel);
-chrome.runtime.onStartup.addListener(setPanel);
+
+function setupShopifyRules() {
+  chrome.declarativeNetRequest?.updateDynamicRules?.({
+    removeRuleIds: [1001],
+    addRules: [
+      {
+        id: 1001,
+        priority: 1,
+        action: {
+          type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+          requestHeaders: [
+            {
+              header: 'Origin',
+              operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE
+            }
+          ]
+        },
+        condition: {
+          urlFilter: '*://*.myshopify.com/admin/api/*',
+          resourceTypes: [
+            chrome.declarativeNetRequest.ResourceType.XMLHTTPREQUEST,
+            chrome.declarativeNetRequest.ResourceType.OTHER
+          ]
+        }
+      }
+    ]
+  }).catch(() => {});
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  setPanel();
+  setupShopifyRules();
+});
+chrome.runtime.onStartup.addListener(() => {
+  setPanel();
+  setupShopifyRules();
+});
+setupShopifyRules();
 
 chrome.tabs.onRemoved.addListener((id) => clearTabState(id));
 chrome.tabs.onActivated.addListener((info) => touchTabActive(info.tabId));
@@ -36,10 +72,33 @@ async function handle(req: Req): Promise<unknown> {
     case 'PREVIEW_INJECT': return previewInject(req.adminTabId, req.themeId, req.targets);
     case 'FETCH_SNIPPETS': return loadSnippets(req.sourceUrl, req.force);
     case 'OPEN_THEMES': return openThemes(req.storeHandle);
-    case 'START_AREA_CAPTURE': return startAreaCapture();
-    case 'START_VIEWPORT_CAPTURE': return startViewportCapture();
+    case 'START_AREA_CAPTURE': return startAreaCapture(req.delay);
+    case 'START_VIEWPORT_CAPTURE': return startViewportCapture(req.delay);
     case 'START_AREA_RECORD': return startAreaRecord();
     case 'OPEN_RECORDER': return openRecorder(req.crop);
+    case 'SHOPIFY_FETCH': {
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request URL:', req.url);
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request Method:', req.options.method || 'GET');
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request Headers:', req.options.headers);
+      console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Request Body:', req.options.body);
+      try {
+        const res = await fetch(req.url, {
+          method: req.options.method || 'GET',
+          headers: req.options.headers,
+          body: req.options.body,
+          credentials: 'omit' // Rất quan trọng: Ngăn trình duyệt tự động gửi session cookie của admin làm Shopify chuyển hướng sang OAuth UI
+        });
+        const status = res.status;
+        const text = await res.text();
+        console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Response Status:', status, 'Redirected:', res.redirected, 'URL:', res.url);
+        console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Response Headers:', [...res.headers.entries()]);
+        console.log('[TIB-Toolkit] [SHOPIFY_FETCH] Response Text Preview:', text.slice(0, 500));
+        return { ok: res.ok, status, text, redirected: res.redirected, finalUrl: res.url };
+      } catch (err: any) {
+        console.error('[TIB-Toolkit] [SHOPIFY_FETCH] Error:', err);
+        return { ok: false, status: 0, error: err.message };
+      }
+    }
     case 'RELOAD_ADMIN_TAB': {
       if (req.tabId) {
         await chrome.tabs.reload(req.tabId);

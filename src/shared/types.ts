@@ -57,8 +57,21 @@ export interface BugContext {
   errors: ConsoleEntry[] | null; // null = hook chưa chạy (cần reload trang)
 }
 
-export interface HealthCheck { id: string; label: string; status: Status; detail: string }
-export interface HealthConflict { id: string; name: string; category: string; evidence: string }
+export interface HealthCheck {
+  id: string;
+  label: string;
+  status: Status;
+  detail: string;
+  category?: 'config' | 'product' | 'form' | 'cart' | 'conflicts' | 'general';
+  suggestion?: string;
+}
+export interface HealthConflict {
+  id: string;
+  name: string;
+  category: string;
+  evidence: string;
+  warning?: string;
+}
 export interface HealthReport {
   isShopify: boolean;
   overall: Status;

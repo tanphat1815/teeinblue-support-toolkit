@@ -145,3 +145,12 @@ dialog.tib-modal[open] {
     position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
   }
 }
+
+/* Ẩn scrollbar thô kệch trên Chrome/Windows */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -3,7 +3,14 @@ import type { Req } from '@/shared/messages';
 import { loadSnippets } from '@/services/snippets';
 import { adminStatus, clearTabState, detectTheme, inject, listUndo, onSessionCaptured, onThemesCaptured, openThemes, previewInject, touchTabActive, undo } from './admin';
 import { captureBug, getTabContext, runHealth } from './storefront';
-import { onOverlayCancel, onOverlayDone, openRecorder, startAreaCapture, startViewportCapture } from './capture';
+import {
+  onOverlayCancel,
+  onOverlayDone,
+  openRecorder,
+  startAreaCapture,
+  startAreaRecord,
+  startViewportCapture
+} from './capture';
 
 const setPanel = () => chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
 chrome.runtime.onInstalled.addListener(setPanel);
@@ -31,7 +38,8 @@ async function handle(req: Req): Promise<unknown> {
     case 'OPEN_THEMES': return openThemes(req.storeHandle);
     case 'START_AREA_CAPTURE': return startAreaCapture();
     case 'START_VIEWPORT_CAPTURE': return startViewportCapture();
-    case 'OPEN_RECORDER': return openRecorder();
+    case 'START_AREA_RECORD': return startAreaRecord();
+    case 'OPEN_RECORDER': return openRecorder(req.crop);
     case 'RELOAD_ADMIN_TAB': {
       if (req.tabId) {
         await chrome.tabs.reload(req.tabId);
@@ -69,6 +77,17 @@ chrome.runtime.onMessage.addListener((msg: any, sender, sendResponse) => {
     return false;
   }
 
+  // Sự kiện từ record box overlay
+  if (msg.type === 'START_AREA_RECORDING_WITH_CROP') {
+    openRecorder(msg.crop);
+    return false;
+  }
+  if (msg.type === 'REC_TOGGLE_PAUSE' || msg.type === 'REC_STOP') {
+    // Chuyển tiếp tới popup recorder
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    return false;
+  }
+
   // từ side panel
   handle(msg as Req)
     .then((data) => sendResponse({ ok: true, data }))
@@ -79,4 +98,12 @@ chrome.runtime.onMessage.addListener((msg: any, sender, sendResponse) => {
 // phím tắt
 chrome.commands.onCommand.addListener((cmd) => {
   if (cmd === 'start-area-capture') startAreaCapture().catch((e) => console.warn('[capture]', e));
+  else if (cmd === 'toggle-record') {
+    // Phát lệnh toggle ghi hình tới recorder hoặc mở popup
+    chrome.runtime.sendMessage({ type: 'CMD_TOGGLE_RECORD' }).catch(() => {
+      openRecorder().catch(() => {});
+    });
+  } else if (cmd === 'pause-record') {
+    chrome.runtime.sendMessage({ type: 'CMD_PAUSE_RECORD' }).catch(() => {});
+  }
 });

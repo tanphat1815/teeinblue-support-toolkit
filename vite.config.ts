@@ -19,7 +19,8 @@ export default defineConfig(({ mode }) => ({
       input: {
         sidepanel: p('./sidepanel.html'),
         background: p('./src/background/index.ts'),
-        editor: p('./editor.html')
+        editor: p('./editor.html'),
+        recorder: p('./recorder.html')
       },
       output: {
         entryFileNames: (chunk) => (chunk.name === 'background' ? 'background.js' : 'assets/[name]-[hash].js'),

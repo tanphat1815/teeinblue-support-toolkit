@@ -3,6 +3,7 @@ import type { Req } from '@/shared/messages';
 import { loadSnippets } from '@/services/snippets';
 import { adminStatus, clearTabState, detectTheme, inject, listUndo, onSessionCaptured, onThemesCaptured, openThemes, previewInject, touchTabActive, undo } from './admin';
 import { captureBug, getTabContext, runHealth } from './storefront';
+import { onOverlayCancel, onOverlayDone, openRecorder, startAreaCapture, startViewportCapture } from './capture';
 
 const setPanel = () => chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
 chrome.runtime.onInstalled.addListener(setPanel);
@@ -28,6 +29,9 @@ async function handle(req: Req): Promise<unknown> {
     case 'PREVIEW_INJECT': return previewInject(req.adminTabId, req.themeId, req.targets);
     case 'FETCH_SNIPPETS': return loadSnippets(req.sourceUrl, req.force);
     case 'OPEN_THEMES': return openThemes(req.storeHandle);
+    case 'START_AREA_CAPTURE': return startAreaCapture();
+    case 'START_VIEWPORT_CAPTURE': return startViewportCapture();
+    case 'OPEN_RECORDER': return openRecorder();
     case 'RELOAD_ADMIN_TAB': {
       if (req.tabId) {
         await chrome.tabs.reload(req.tabId);
@@ -53,9 +57,26 @@ chrome.runtime.onMessage.addListener((msg: any, sender, sendResponse) => {
     return false;
   }
 
+  // từ overlay capture
+  if (msg.type === 'TIBK_OVERLAY_DONE') {
+    onOverlayDone(sender, msg)
+      .then(() => sendResponse({ ok: true }))
+      .catch((e) => sendResponse({ ok: false, error: String(e?.message || e) }));
+    return true;
+  }
+  if (msg.type === 'TIBK_OVERLAY_CANCEL') {
+    onOverlayCancel(msg.captureId);
+    return false;
+  }
+
   // từ side panel
   handle(msg as Req)
     .then((data) => sendResponse({ ok: true, data }))
     .catch((e) => sendResponse({ ok: false, error: (e as Error)?.message || String(e) }));
   return true;
+});
+
+// phím tắt
+chrome.commands.onCommand.addListener((cmd) => {
+  if (cmd === 'start-area-capture') startAreaCapture().catch((e) => console.warn('[capture]', e));
 });

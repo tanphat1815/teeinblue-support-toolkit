@@ -18,7 +18,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       input: {
         sidepanel: p('./sidepanel.html'),
-        background: p('./src/background/index.ts')
+        background: p('./src/background/index.ts'),
+        editor: p('./editor.html')
       },
       output: {
         entryFileNames: (chunk) => (chunk.name === 'background' ? 'background.js' : 'assets/[name]-[hash].js'),

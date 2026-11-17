@@ -13,7 +13,22 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs", "webNavigation"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "clipboardWrite",
+    "unlimitedStorage"
+  ],
+  "commands": {
+    "start-area-capture": {
+      "suggested_key": { "default": "Alt+Shift+S", "mac": "Alt+Shift+S" },
+      "description": "Chụp vùng màn hình (Teeinblue Toolkit)"
+    }
+  },
   "host_permissions": [
     "https://admin.shopify.com/*",
     "https://online-store-web.shopifyapps.com/*",

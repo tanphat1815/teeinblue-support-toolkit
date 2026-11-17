@@ -6,12 +6,14 @@ import UntitledIcon, { type IconName } from './components/UntitledIcon.vue';
 import BugReporter from './tabs/BugReporter.vue';
 import SnippetInjector from './tabs/SnippetInjector.vue';
 import StoreHealth from './tabs/StoreHealth.vue';
+import CaptureTab from './tabs/CaptureTab.vue';
 
 const { ctx, loading, refresh } = useTabContext();
-const tabs: Array<{ id: 'bug' | 'snippet' | 'health'; label: string; icon: IconName }> = [
-  { id: 'bug', label: 'Bug Reporter', icon: 'bug' },
-  { id: 'snippet', label: 'Snippet Injector', icon: 'code-02' },
-  { id: 'health', label: 'Store Health', icon: 'search-lg' }
+const tabs: Array<{ id: 'bug' | 'snippet' | 'health' | 'capture'; label: string; icon: IconName }> = [
+  { id: 'bug', label: 'Bug', icon: 'bug' },
+  { id: 'snippet', label: 'Snippet', icon: 'code-02' },
+  { id: 'health', label: 'Health', icon: 'search-lg' },
+  { id: 'capture', label: 'Capture', icon: 'copy' }
 ];
 const active = ref<(typeof tabs)[number]['id']>('bug');
 </script>
@@ -49,6 +51,7 @@ const active = ref<(typeof tabs)[number]['id']>('bug');
       <BugReporter v-show="active === 'bug'" :ctx="ctx" />
       <SnippetInjector v-show="active === 'snippet'" :ctx="ctx" />
       <StoreHealth v-show="active === 'health'" :ctx="ctx" />
+      <CaptureTab v-show="active === 'capture'" />
     </main>
     <ToastHost />
   </div>

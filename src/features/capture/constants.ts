@@ -1,4 +1,4 @@
-export const SHOPIFY_API_VERSION = '2026-04'; // pin; đổi cùng lúc với Gate A
+export const SHOPIFY_API_VERSION = '2026-10'; // pin; đổi cùng lúc với Gate A
 export const LIMITS = {
   imageMaxBytes: 20 * 1024 * 1024 - 64 * 1024, // chừa lề
   imageMaxPixels: 20_000_000,
